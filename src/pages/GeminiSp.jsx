@@ -1,0 +1,218 @@
+// src/components/GeminiSp.jsx
+import React, { useState, useEffect, useRef } from 'react';
+import { IoSend } from 'react-icons/io5';
+import { FaTrash, FaStopwatch, FaEdit, FaCompass, FaWrench, FaCopy, FaCheck } from 'react-icons/fa';
+import hljs from 'highlight.js';
+import 'highlight.js/styles/github-dark.css';
+
+const GeminiSp = () => {
+  const [messages, setMessages] = useState([]);
+  const [input, setInput] = useState('');
+  const [isGenerating, setIsGenerating] = useState(false);
+  const chatContainerRef = useRef(null);
+
+  const GOOGLE_API_KEY = "AIzaSyCxC3qnXcsL4pECF5Tlx33KSQ-hkU_COGU";
+  const API_REQUEST_URL = `https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent?key=${GOOGLE_API_KEY}`;
+
+  // Load saved chats from localStorage
+  useEffect(() => {
+    const savedChats = JSON.parse(localStorage.getItem('saved-api-chats')) || [];
+    setMessages(savedChats);
+  }, []);
+
+  // Auto-scroll to bottom when messages change
+  useEffect(() => {
+    if (chatContainerRef.current) {
+      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+    }
+  }, [messages]);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!input.trim() || isGenerating) return;
+
+    setIsGenerating(true);
+    const userMessage = { type: 'user', text: input };
+    setMessages((prev) => [...prev, userMessage]);
+    setInput('');
+
+    const response = await fetchApiResponse(input);
+    setMessages((prev) => [...prev, { type: 'ai', text: response, isLoading: false }]);
+    saveChatToLocalStorage([...messages, userMessage, { type: 'ai', text: response }]);
+    setIsGenerating(false);
+  };
+
+  const fetchApiResponse = async (message) => {
+    try {
+      const response = await fetch(API_REQUEST_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ role: 'user', parts: [{ text: message }] }],
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error.message);
+      return data?.candidates?.[0]?.content?.parts?.[0]?.text || 'No response';
+    } catch (error) {
+      return `Error: ${error.message}`;
+    }
+  };
+
+  const saveChatToLocalStorage = (updatedMessages) => {
+    localStorage.setItem('saved-api-chats', JSON.stringify(updatedMessages));
+  };
+
+  const handleSuggestionClick = (suggestion) => {
+    setInput(suggestion);
+    handleSubmit({ preventDefault: () => {} });
+  };
+
+  const clearChat = () => {
+    if (window.confirm('Are you sure you want to delete all chat history?')) {
+      setMessages([]);
+      localStorage.removeItem('saved-api-chats');
+    }
+  };
+
+  const copyToClipboard = (text) => {
+    navigator.clipboard.writeText(text);
+  };
+
+  const suggestions = [
+    { text: 'Give tips on helping kids finish their homework on time', icon: <FaStopwatch /> },
+    { text: 'Help me write an out-of-office email', icon: <FaEdit /> },
+    { text: 'Give me phrases to learn a new language', icon: <FaCompass /> },
+    { text: 'Show me how to build something by hand', icon: <FaWrench /> },
+  ];
+
+  return (
+    <div className="min-h-screen bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 flex flex-col">
+      {/* Chat Section - Fixed height with scroll */}
+      <section
+        ref={chatContainerRef}
+        className="flex-1 overflow-y-auto p-6 pb-32"
+      >
+        <div className="max-w-2xl mx-auto">
+          {messages.length === 0 && (
+            <header className="p-6 text-center mt-[6vh]">
+              <div className="mb-6">
+                <h1
+                  className="text-[3.25rem] font-semibold w-fit mx-auto"
+                  style={{
+                    background: 'linear-gradient(to right, #4a90e2, #a355b9, #ff6b6b)',
+                    backgroundClip: 'text',
+                    WebkitBackgroundClip: 'text',
+                    textFillColor: 'transparent',
+                    WebkitTextFillColor: 'transparent',
+                  }}
+                >
+                  Hello, There!
+                </h1>
+                <h2 className="text-[3.25rem] font-semibold text-gray-700 dark:text-gray-300">
+                  How can I help you today?
+                </h2>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {suggestions.map((suggestion, index) => (
+                  <button
+                    key={index}
+                    onClick={() => handleSuggestionClick(suggestion.text)}
+                    className="flex items-center justify-between p-4 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 transition-colors"
+                  >
+                    <span>{suggestion.text}</span>
+                    {suggestion.icon}
+                  </button>
+                ))}
+              </div>
+            </header>
+          )}
+
+          {messages.map((msg, index) => (
+            <div
+              key={index}
+              className={`flex ${msg.type === 'user' ? 'justify-end' : 'justify-start'} mb-4 z-0`}
+            >
+              <div
+                className={`flex items-start p-4 rounded-lg ${
+                  msg.type === 'user'
+                    ? 'bg-indigo-600 text-white'
+                    : msg.isLoading
+                    ? 'bg-gray-300 text-gray-700 dark:bg-gray-700 dark:text-gray-300'
+                    : 'bg-gray-200 text-gray-800 dark:bg-gray-800 dark:text-gray-200'
+                }`}
+              >
+                <img
+                  src={msg.type === 'user' ? 'src/assets/profile.png' : 'src/assets/gemini.svg'}
+                  alt={`${msg.type} avatar`}
+                  className="w-8 h-8 mr-2 rounded-full"
+                />
+                <div>
+                  <p>{msg.text}</p>
+                  {msg.type === 'ai' && !msg.isLoading && (
+                    <button
+                      onClick={() => copyToClipboard(msg.text)}
+                      className="mt-2 text-sm text-indigo-400 hover:text-indigo-300 flex items-center"
+                    >
+                      <FaCopy className="mr-1" /> Copy
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          ))}
+          {isGenerating && (
+            <div className="flex justify-start mb-4 z-0">
+              <div className="p-4 bg-gray-300 text-gray-700 rounded-lg dark:bg-gray-700 dark:text-gray-300">
+                <div className="flex items-start">
+                  <img src="/assets/gemini.svg" alt="AI avatar" className="w-8 h-8 mr-2 rounded-full" />
+                  <div className="flex space-x-1">
+                    <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce dark:bg-gray-400"></div>
+                    <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce delay-100 dark:bg-gray-400"></div>
+                    <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce delay-200 dark:bg-gray-400"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* Prompt Section - Fixed at the bottom of the screen */}
+      <div className="fixed bottom-0 left-0 right-0 z-20">
+        <div className="relative z-30 pt-9 px-6 pb-6 bg-gray-100 dark:bg-gray-900 mt-8">
+          <form
+            onSubmit={handleSubmit}
+            className="flex items-center max-w-2xl mx-auto relative bg-gray-200 dark:bg-gray-800 p-3 rounded-lg shadow-md"
+          >
+            <input
+              type="text"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              placeholder="Enter a prompt here"
+              className="flex-1 p-2 bg-transparent text-gray-800 dark:text-gray-200 border-0 focus:outline-none focus:ring-0 placeholder-gray-500 dark:placeholder-gray-400"
+            />
+            <button
+              type="button"
+              onClick={clearChat}
+              className="absolute right-12 top-1/2 transform -translate-y-1/2 p-2 text-gray-500 hover:text-red-600 dark:text-gray-400 dark:hover:text-red-500"
+            >
+              <FaTrash />
+            </button>
+            <button
+              type="submit"
+              className="p-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+            >
+              <IoSend />
+            </button>
+          </form>
+          <p className="text-center text-sm text-gray-500 dark:text-gray-400 mt-2 max-w-2xl mx-auto">
+            Gemini may display inaccurate info, including about people, so double-check its responses.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default GeminiSp;  

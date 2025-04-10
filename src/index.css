@@ -1,0 +1,20 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+
+* {
+    -ms-overflow-style: none; /* IE and Edge */
+    scrollbar-width: none; /* Firefox */
+  }
+  
+  /* Ẩn thanh cuộn cho Chrome, Safari và Opera */
+  *::-webkit-scrollbar {
+    display: none;
+  }
+  
+  /* Đảm bảo vẫn giữ được chức năng cuộn mượt */
+  * {
+    -webkit-overflow-scrolling: touch; /* Cho iOS */
+  }
+  
