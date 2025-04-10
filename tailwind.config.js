@@ -14,6 +14,16 @@ export default {
       fontFamily: {
         sans: ["Inter", "sans-serif"],
       },
+      animation: {
+        loading: 'loading 3s linear infinite',
+      },
+      keyframes: {
+        loading: {
+          '0%': { backgroundPosition: '-800px 0' },
+          '50%': { backgroundPosition: '0px 0' },
+          '100%': { backgroundPosition: '800px 0' },
+        },
+      },
     },
   },
   plugins: [

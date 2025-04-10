@@ -1,4 +1,3 @@
-// src/components/GeminiSp.jsx
 import React, { useState, useEffect, useRef } from 'react';
 import { IoSend } from 'react-icons/io5';
 import { FaTrash, FaStopwatch, FaEdit, FaCompass, FaWrench, FaCopy, FaCheck } from 'react-icons/fa';
@@ -89,23 +88,13 @@ const GeminiSp = () => {
   return (
     <div className="min-h-screen bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 flex flex-col">
       {/* Chat Section - Fixed height with scroll */}
-      <section
-        ref={chatContainerRef}
-        className="flex-1 overflow-y-auto p-6 pb-32"
-      >
+      <section ref={chatContainerRef} className="flex-1 overflow-y-auto p-6 pb-32 chats">
         <div className="max-w-2xl mx-auto">
           {messages.length === 0 && (
             <header className="p-6 text-center mt-[6vh]">
               <div className="mb-6">
                 <h1
-                  className="text-[3.25rem] font-semibold w-fit mx-auto"
-                  style={{
-                    background: 'linear-gradient(to right, #4a90e2, #a355b9, #ff6b6b)',
-                    backgroundClip: 'text',
-                    WebkitBackgroundClip: 'text',
-                    textFillColor: 'transparent',
-                    WebkitTextFillColor: 'transparent',
-                  }}
+                  className="text-[3.25rem] font-semibold w-fit mx-auto bg-gradient-to-r from-[#4a90e2] via-[#a355b9] to-[#ff6b6b] bg-clip-text text-transparent"
                 >
                   Hello, There!
                 </h1>
@@ -162,14 +151,18 @@ const GeminiSp = () => {
             </div>
           ))}
           {isGenerating && (
-            <div className="flex justify-start mb-4 z-0">
-              <div className="p-4 bg-gray-300 text-gray-700 rounded-lg dark:bg-gray-700 dark:text-gray-300">
+            <div className="flex justify-start mb-4 z-0 message message--loading">
+              <div className="p-4 text-gray-700 rounded-lg dark:bg-gray-700 dark:text-gray-300 w-full">
                 <div className="flex items-start">
-                  <img src="/assets/gemini.svg" alt="AI avatar" className="w-8 h-8 mr-2 rounded-full" />
-                  <div className="flex space-x-1">
-                    <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce dark:bg-gray-400"></div>
-                    <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce delay-100 dark:bg-gray-400"></div>
-                    <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce delay-200 dark:bg-gray-400"></div>
+                  <img
+                    src="src/assets/gemini.svg"
+                    alt="AI avatar"
+                    className="w-10 h-10 mr-3 rounded-full message__avatar animate-spin"
+                  />
+                  <div className="message__loading-indicator">
+                    <div className="message__loading-bar"></div>
+                    <div className="message__loading-bar"></div>
+                    <div className="message__loading-bar"></div>
                   </div>
                 </div>
               </div>
@@ -211,8 +204,62 @@ const GeminiSp = () => {
           </p>
         </div>
       </div>
+
+      {/* Custom CSS for loading bars */}
+      <style jsx global>{`
+        .chats .message__loading-indicator {
+          display: none;
+          gap: 0.6rem;
+          width: 100%;
+          flex-direction: column;
+          margin-bottom: 20px;
+        }
+
+        .chats .message--loading .message__loading-indicator {
+          display: flex;
+        }
+
+        .chats .message__loading-indicator .message__loading-bar {
+          height: 1rem;
+          width: 100%;
+          border-radius: 0.135rem;
+          background-position: -800px 0;
+          background: linear-gradient(to right, #2563eb60 30%, transparent 60%, #2563eb60);
+          animation: loading 15s linear infinite;
+        }
+
+        .chats .message__loading-indicator .message__loading-bar:first-child {
+          width: 85%;
+        }
+
+        .chats .message__loading-indicator .message__loading-bar:last-child {
+          width: 70%;
+        }
+
+        @keyframes loading {
+          0% {
+            background-position: -800px 0;
+          }
+          50% {
+            background-position: 0px 0;
+          }
+          100% {
+            background-position: 800px 0;
+          }
+        }
+
+        .chats .message__avatar {
+          animation: rotate 3s linear infinite;
+        }
+
+        @keyframes rotate {
+          100% {
+            transform: rotate(360deg);
+          }
+        }
+      `}</style>
     </div>
   );
 };
 
-export default GeminiSp;  
+export default GeminiSp;

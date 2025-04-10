@@ -383,7 +383,7 @@ const AiAssistant = () => {
                       type="text"
                       value={followUpQuestion}
                       onChange={(e) => setFollowUpQuestion(e.target.value)}
-                      className="flex-1 rounded-l-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-200 shadow-sm focus:border-indigo-600 focus:ring-indigo-600 sm:text-sm"
+                      className="flex-1 rounded-l-md border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 text-gray-900 outline-none dark:text-gray-200 shadow-sm focus:border-indigo-600 focus:ring-indigo-600 sm:text-sm"
                       placeholder="Ask a follow-up question..."
                     />
                     <button
