@@ -17,4 +17,21 @@
   * {
     -webkit-overflow-scrolling: touch; /* Cho iOS */
   }
+
+  @keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+  }
+  @keyframes drawLine {
+    0% { width: 0; }
+    100% { width: 100%; }
+  }
+  @keyframes fadeIn {
+    0% { opacity: 0; transform: translateY(20px); }
+    100% { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes checkBounce {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.2); }
+  }
   
