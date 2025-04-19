@@ -6,6 +6,7 @@ import GeminiSp from "../pages/GeminiSp";
 import AiAssistant from "../pages/AiAssistant";
 import Login from "../pages/Auth/LoginPage";
 import Register from "../pages/Auth/Register";
+import LearningPlanPage from "../pages/LearningPlanPage";
 
 const AppRouters = () => {
   return (
@@ -16,7 +17,7 @@ const AppRouters = () => {
       <Route path="/AiAssistant" element={<AiAssistant />} />
       <Route path="/Login" element={<Login />} />
       <Route path="/register" element={<Register/>} />
-
+      <Route path="/learning-plan" element={<LearningPlanPage />} />
       {/* <Route path="/Resources" element={<Resources />} />
       <Route path="/Research" element={<Research />} />
       <Route path="/Community" element={<Community />} />

@@ -1,4 +1,3 @@
-// src/components/Preferences.jsx
 import { BsArrowLeft, BsArrowRight } from "react-icons/bs";
 import { FaEye, FaHeadphones, FaBook, FaHands } from "react-icons/fa";
 
@@ -25,15 +24,17 @@ const Preferences = ({ userData, setUserData, nextStep, prevStep }) => {
         preferences: { ...userData.preferences, [type]: value },
       });
     } else if (type === "resources") {
+      const resourceKey = value.toLowerCase().replace(/ & /g, "");
+      const updatedResources = {
+        ...userData.preferences.resources,
+        [resourceKey]: !userData.preferences.resources[resourceKey],
+      };
+      console.log("Updating resources:", updatedResources); // Debug log
       setUserData({
         ...userData,
         preferences: {
           ...userData.preferences,
-          resources: {
-            ...userData.preferences.resources,
-            [value.toLowerCase().replace(/ & /g, "")]: !userData
-              .preferences.resources[value.toLowerCase().replace(/ & /g, "")],
-          },
+          resources: updatedResources,
         },
       });
     }
@@ -100,7 +101,7 @@ const Preferences = ({ userData, setUserData, nextStep, prevStep }) => {
                     ]
                   }
                   onChange={() => selectPreference("resources", resource)}
-                  className="form-checkbox h-5 w-5 text-blue-500 rounded focus:ring-blue-400 dark:bg-gray-700 dark:border-gray-600 "
+                  className="form-checkbox h-5 w-5 text-blue-500 rounded focus:ring-blue-400 dark:bg-gray-700 dark:border-gray-600"
                 />
                 <span className="ml-2 text-gray-700 dark:text-gray-300">
                   {resource}

@@ -58,9 +58,10 @@ const AIModelSelector = ({ selectedModel, setSelectedModel }) => {
     bgColor: "bg-gray-100",
   };
 
-  const toggleDropdown = () => {
+  const toggleDropdown = (e) => {
+    e.stopPropagation();
     console.log("Toggling dropdown, current isOpen:", isOpen);
-    setIsOpen(!isOpen);
+    setIsOpen((prev) => !prev);
   };
 
   const selectAI = (aiId) => {
@@ -76,76 +77,73 @@ const AIModelSelector = ({ selectedModel, setSelectedModel }) => {
         setIsOpen(false);
       }
     };
-    document.addEventListener("click", handleClickOutside);
-    return () => document.removeEventListener("click", handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   return (
-    <div className="relative max-w-md mx-auto">
-      {/* Selected AI Display */}
+    <div className="relative w-96">
       <div
         id="selectedAIDisplay"
         className="bg-white rounded-xl shadow-md p-4 cursor-pointer flex items-center justify-between border border-gray-200 hover:border-indigo-300 transition-all"
         onClick={toggleDropdown}
       >
-        <div className="flex items-center">
+        <div className="flex items-center w-full">
           <div
             id="selectedAIIcon"
-            className={`w-10 h-10 rounded-full ${selectedAI.bgColor} flex items-center justify-center mr-3`}
+            className={`w-10 h-10 rounded-full ${selectedAI.bgColor} flex items-center justify-center mr-3 ${selectedAI.color}`}
           >
             {selectedAI.icon}
           </div>
-          <div>
-            <h3 id="selectedAIName" className="font-medium text-gray-800">
+          <div className="flex-1 min-w-0">
+            <h3 id="selectedAIName" className="font-medium text-gray-800 truncate">
               {selectedAI.name}
             </h3>
-            <p id="selectedAIDesc" className="text-xs text-gray-500">
+            <p id="selectedAIDesc" className="text-xs text-gray-500 truncate">
               {selectedAI.description}
             </p>
           </div>
         </div>
         <FaChevronDown
           id="dropdownArrow"
-          className={`text-gray-400 transition-transform ${isOpen ? "transform rotate-180" : ""}`}
+          className={`text-gray-400 transition-transform ${isOpen ? "rotate-180" : ""}`}
         />
       </div>
-
-      {/* Dropdown Options */}
       <AnimatePresence>
         {isOpen && (
           <motion.div
             id="aiDropdown"
             ref={dropdownRef}
-            className="absolute z-10 w-full mt-2 bg-white rounded-xl shadow-lg overflow-hidden border border-gray-200"
+            className="absolute z-20 mt-2 bg-white rounded-xl max-w-96 shadow-lg border border-gray-200"
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.2 }}
           >
-            <div id="aiOptions" className="max-h-80 overflow-y-auto">
+            <div id="aiOptions" className="max-h-80  overflow-y-auto">
               {aiOptions.map((ai) => (
                 <div
                   key={ai.id}
-                  className={`ai-option flex items-center p-4 cursor-pointer ${
-                    selectedModel === ai.id ? "active" : ""
-                  } hover:bg-indigo-50`}
+                  className={`flex items-center p-4 cursor-pointer hover:bg-indigo-50 ${
+                    selectedModel === ai.id ? "bg-indigo-50" : ""
+                  }`}
                   data-id={ai.id}
                   onClick={() => selectAI(ai.id)}
                 >
                   <div
-                    className={`w-10 h-10 rounded-full ${ai.bgColor} flex items-center justify-center mr-3`}
+                    className={`w-10 h-10 rounded-full ${ai.bgColor} flex items-center justify-center mr-3 ${ai.color}`}
                   >
                     {ai.icon}
                   </div>
-                  <div className="flex-1">
+                  <div className="flex-1 min-w-0">
                     <h4
-                      className={`ai-name font-medium ${
-                        selectedModel === ai.id ? "text-indigo-600 font-semibold" : ""
-                      }`}
+                      className={`font-medium ${
+                        selectedModel === ai.id ? "text-indigo-600 font-semibold" : "text-gray-800"
+                      } truncate`}
                     >
                       {ai.name}
                     </h4>
-                    <p className="text-xs text-gray-500">{ai.description}</p>
+                    <p className="text-xs text-gray-500 truncate">{ai.description}</p>
                   </div>
                   {selectedModel === ai.id && (
                     <FaCheck className="text-indigo-500" />
@@ -159,113 +157,5 @@ const AIModelSelector = ({ selectedModel, setSelectedModel }) => {
     </div>
   );
 };
-
-/* No-animation version (uncomment if framer-motion is not installed):
-const AIModelSelector = ({ selectedModel, setSelectedModel }) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const dropdownRef = useRef(null);
-
-  const selectedAI = aiOptions.find((ai) => ai.id === selectedModel) || {
-    id: null,
-    name: "Choose your model",
-    description: "Click to select",
-    icon: <FaRobot />,
-    color: "text-gray-500",
-    bgColor: "bg-gray-100",
-  };
-
-  const toggleDropdown = () => {
-    console.log("Toggling dropdown, current isOpen:", isOpen);
-    setIsOpen(!isOpen);
-  };
-
-  const selectAI = (aiId) => {
-    console.log("Selecting AI model:", aiId);
-    setSelectedModel(aiId);
-    setIsOpen(false);
-  };
-
-  useEffect(() => {
-    const handleClickOutside = (e) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
-        console.log("Clicked outside, closing dropdown");
-        setIsOpen(false);
-      }
-    };
-    document.addEventListener("click", handleClickOutside);
-    return () => document.removeEventListener("click", handleClickOutside);
-  }, []);
-
-  return (
-    <div className="relative max-w-md mx-auto">
-      <div
-        id="selectedAIDisplay"
-        className="bg-white rounded-xl shadow-md p-4 cursor-pointer flex items-center justify-between border border-gray-200 hover:border-indigo-300 transition-all"
-        onClick={toggleDropdown}
-      >
-        <div className="flex items-center">
-          <div
-            id="selectedAIIcon"
-            className={`w-10 h-10 rounded-full ${selectedAI.bgColor} flex items-center justify-center mr-3`}
-          >
-            {selectedAI.icon}
-          </div>
-          <div>
-            <h3 id="selectedAIName" className="font-medium text-gray-800">
-              {selectedAI.name}
-            </h3>
-            <p id="selectedAIDesc" className="text-xs text-gray-500">
-              {selectedAI.description}
-            </p>
-          </div>
-        </div>
-        <FaChevronDown
-          id="dropdownArrow"
-          className={`text-gray-400 transition-transform ${isOpen ? "transform rotate-180" : ""}`}
-        />
-      </div>
-      {isOpen && (
-        <div
-          id="aiDropdown"
-          ref={dropdownRef}
-          className="absolute z-10 w-full mt-2 bg-white rounded-xl shadow-lg overflow-hidden border border-gray-200"
-        >
-          <div id="aiOptions" className="max-h-80 overflow-y-auto">
-            {aiOptions.map((ai) => (
-              <div
-                key={ai.id}
-                className={`ai-option flex items-center p-4 cursor-pointer ${
-                  selectedModel === ai.id ? "active" : ""
-                } hover:bg-indigo-50`}
-                data-id={ai.id}
-                onClick={() => selectAI(ai.id)}
-              >
-                <div
-                  className={`w-10 h-10 rounded-full ${ai.bgColor} flex items-center justify-center mr-3`}
-                >
-                  {ai.icon}
-                </div>
-                <div className="flex-1">
-                  <h4
-                    className={`ai-name font-medium ${
-                      selectedModel === ai.id ? "text-indigo-600 font-semibold" : ""
-                    }`}
-                  >
-                    {ai.name}
-                  </h4>
-                  <p className="text-xs text-gray-500">{ai.description}</p>
-                </div>
-                {selectedModel === ai.id && (
-                  <FaCheck className="text-indigo-500" />
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-};
-*/
 
 export default AIModelSelector;

@@ -79,14 +79,14 @@ const Navbar = () => {
                 Research
               </NavLink>
               <NavLink
-                to="/Community"
+                to="/learning-plan"
                 className={({ isActive }) =>
                   `nav-link px-1 py-2 text-sm text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white ${
                     isActive ? 'active font-semibold text-gray-900 dark:text-white' : ''
                   }`
                 }
               >
-                Community
+                Learning plan
               </NavLink>
             </div>
           </div>
