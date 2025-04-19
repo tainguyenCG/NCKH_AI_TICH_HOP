@@ -79,7 +79,7 @@ export const createAIPrompt = (userData, getSkillLevelDescription) => {
   - Solutions format: code for coding, equations/text for non-coding.
   - Distribute tasks evenly, avoiding unrelated topics.
   - If no time specified, include rest days with notes.
-  
+  - Just answer the json do not return anythings else.
   Generate the plan based on user data, ensuring varied tasks with clear theory and exercises tailored to the learning goal.`;
 };
 
@@ -206,6 +206,6 @@ export const createOptimizedPrompt = (learningPlan, completedTasks, progress) =>
     - Ensure all fields in the output structure are populated, including 'interests' in user.
     - Ensure each task has a valid 'resource' field (e.g., a URL or "None").
     - Maintain constraints of the initial prompt: detailed theory, relevant exercises, and clear notes.
-
+    - Just answer the json do not return anythings else.
     Generate the optimized plan, ensuring the JSON structure is complete and consistent with the initial response.`;
 };
