@@ -1,13 +1,16 @@
+// 
 import React, { useState, useEffect } from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faBookOpen, faFileAlt, faMoon, faSun } from '@fortawesome/free-solid-svg-icons';
 
 const Navbar = () => {
-  // State for dark mode
   const [isDark, setIsDark] = useState(false);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false); // State cho dropdown
+  const navigate = useNavigate();
+  const isLoggedIn = localStorage.getItem("isLoggedIn") === "true"; // Kiểm tra trạng thái đăng nhập
 
-  // Toggle dark mode and persist in localStorage
+  // Toggle dark mode và lưu vào localStorage
   useEffect(() => {
     if (isDark) {
       document.documentElement.classList.add('dark');
@@ -18,13 +21,21 @@ const Navbar = () => {
     }
   }, [isDark]);
 
-  // Load theme from localStorage on mount
+  // Load theme từ localStorage khi mount
   useEffect(() => {
     const savedTheme = localStorage.getItem('theme');
     if (savedTheme === 'dark') {
       setIsDark(true);
     }
   }, []);
+
+  // Xử lý đăng xuất
+  const handleLogout = () => {
+    localStorage.removeItem("token"); // Xóa token
+    localStorage.removeItem("isLoggedIn"); // Xóa trạng thái đăng nhập
+    setIsDropdownOpen(false); // Đóng dropdown
+    navigate("/"); // Điều hướng về trang chủ
+  };
 
   return (
     <nav className="sticky top-0 z-50 bg-white navbar dark:bg-gray-900">
@@ -107,26 +118,71 @@ const Navbar = () => {
               >
                 <FontAwesomeIcon icon={isDark ? faSun : faMoon} className="w-5 h-5" />
               </button>
-              <NavLink
-                to="/login"
-                className="inline-flex items-center px-4 py-2 text-sm font-medium text-white border border-transparent rounded-md download-btn bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 dark:from-indigo-500 dark:to-purple-500"
-              >
-                Login Now
-                <svg
-                  className="w-4 h-4 ml-2 -mr-1"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                  xmlns="http://www.w3.org/2000/svg"
+              {/* Conditional Rendering for Login/Profile */}
+              {isLoggedIn ? (
+                <div className="relative">
+                  <button
+                    onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                    className="inline-flex items-center px-4 py-2 text-sm font-medium text-white border border-transparent rounded-md bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 dark:from-indigo-500 dark:to-purple-500"
+                  >
+                    Profile
+                    <svg
+                      className="w-4 h-4 ml-2 -mr-1"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                        d="M19 9l-7 7-7-7"
+                      />
+                    </svg>
+                  </button>
+                  {isDropdownOpen && (
+                    <div className="absolute right-0 z-10 w-48 mt-2 bg-white rounded-md shadow-lg dark:bg-gray-800">
+                      <button
+                        onClick={() => {
+                          navigate("/profile");
+                          setIsDropdownOpen(false);
+                        }}
+                        className="block w-full px-4 py-2 text-sm text-left text-gray-800 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-700"
+                      >
+                        View Profile
+                      </button>
+                      <button
+                        onClick={handleLogout}
+                        className="block w-full px-4 py-2 text-sm text-left text-gray-800 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-700"
+                      >
+                        Logout
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <NavLink
+                  to="/login"
+                  className="inline-flex items-center px-4 py-2 text-sm font-medium text-white border border-transparent rounded-md download-btn bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 dark:from-indigo-500 dark:to-purple-500"
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    d="M13 7l5 5m0 0l-5 5m5-5H6"
-                  ></path>
-                </svg>
-              </NavLink>
+                  Login Now
+                  <svg
+                    className="w-4 h-4 ml-2 -mr-1"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M13 7l5 5m0 0l-5 5m5-5H6"
+                    />
+                  </svg>
+                </NavLink>
+              )}
             </div>
           </div>
           <div className="flex items-center -mr-2 sm:hidden">
