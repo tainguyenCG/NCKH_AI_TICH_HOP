@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { IoEye, IoEyeOff } from "react-icons/io5";
 import { useNavigate } from "react-router-dom";
@@ -9,6 +10,9 @@ const Register = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [passwordConfirmation, setPasswordConfirmation] = useState("");
+  const [name, setName] = useState("");
+  const [age, setAge] = useState("");
+  const [gender, setGender] = useState("");
   const [error, setError] = useState("");
   const navigate = useNavigate();
 
@@ -25,12 +29,20 @@ const Register = () => {
     try {
       const response = await axios.post(
         "https://assistant.baopanel.com/api/auth/register",
-        { email, password, password_confirmation: passwordConfirmation }
+        {
+          email,
+          password,
+          password_confirmation: passwordConfirmation,
+          name,
+          age,
+          gender,
+        }
       );
 
       // Check if token is returned and store it in localStorage
       if (response.data.token) {
         localStorage.setItem("token", response.data.token);
+        localStorage.setItem("isLoggedIn", "true");
         console.log("Token stored:", response.data.token);
       } else {
         console.warn("No token returned from register API");
@@ -60,7 +72,44 @@ const Register = () => {
 
           <form onSubmit={handleRegister} className="flex flex-col gap-4">
             <input
-              className="p-2 mt-8 border rounded-xl"
+              className="w-full p-2 mt-8 placeholder-gray-500 border rounded-xl"
+              type="text"
+              name="name"
+              placeholder="Name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              required
+            />
+
+            <div className="flex gap-4">
+              <input
+                className="p-2 placeholder-gray-500 border rounded-xl"
+                style={{ width: 'calc(40% - 0.4rem)' }}
+                type="number"
+                name="age"
+                placeholder="Age"
+                value={age}
+                onChange={(e) => setAge(e.target.value)}
+                required
+              />
+              <select
+                className="p-2 border rounded-xl"
+                style={{ width: 'calc(60% - 0.6rem)' }}
+                name="gender"
+                value={gender}
+                onChange={(e) => setGender(e.target.value)}
+                required
+              >
+                <option value="" disabled >
+                Select Gender
+                </option>
+                <option value="male">Nam</option>
+                <option value="female">Nữ</option>
+              </select>
+            </div>
+
+            <input
+              className="w-full p-2 placeholder-gray-500 border rounded-xl"
               type="email"
               name="email"
               placeholder="Email"
@@ -71,7 +120,7 @@ const Register = () => {
 
             <div className="relative">
               <input
-                className="w-full p-2 pr-10 border rounded-xl"
+                className="w-full p-2 pr-10 placeholder-gray-500 border rounded-xl"
                 type={showPassword ? "text" : "password"}
                 name="password"
                 id="password"
@@ -90,7 +139,7 @@ const Register = () => {
 
             <div className="relative">
               <input
-                className="w-full p-2 pr-10 border rounded-xl"
+                className="w-full p-2 pr-10 placeholder-gray-500 border rounded-xl"
                 type={showConfirmPassword ? "text" : "password"}
                 name="password_confirmation"
                 id="password_confirmation"
