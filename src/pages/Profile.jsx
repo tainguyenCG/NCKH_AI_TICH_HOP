@@ -1,19 +1,51 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import axios from "axios";
 
 const Profile = () => {
   const navigate = useNavigate();
 
-  // Dữ liệu ban đầu từ localStorage
-  const initialUser = {
-    name: localStorage.getItem("name") || "Không có dữ liệu",
-    age: localStorage.getItem("age") || "Không có dữ liệu",
-    gender: localStorage.getItem("gender") || "Không có dữ liệu",
-    email: localStorage.getItem("email") || "Không có dữ liệu",
-  };
-
   const [isEditing, setIsEditing] = useState(false);
-  const [user, setUser] = useState(initialUser);
+  const [user, setUser] = useState({
+    name: "Không có dữ liệu",
+    age: "Không có dữ liệu",
+    gender: "Không có dữ liệu",
+    email: "Không có dữ liệu",
+  });
+  const [error, setError] = useState("");
+
+  // Lấy dữ liệu người dùng từ API khi trang được tải
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        if (!token) {
+          navigate("/login");
+          return;
+        }
+
+        const response = await axios.get("https://assistant.baopanel.com/api/user", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        setUser({
+          name: response.data.name || "Không có dữ liệu",
+          age: response.data.age || "Không có dữ liệu",
+          gender: response.data.gender || "Không có dữ liệu",
+          email: response.data.email || "Không có dữ liệu",
+        });
+      } catch (err) {
+        if (err.response?.status === 401) {
+          localStorage.removeItem("token");
+          localStorage.removeItem("isLoggedIn");
+          navigate("/login");
+        } else {
+          setError(err.response?.data?.message || "Failed to fetch user data.");
+        }
+      }
+    };
+    fetchUser();
+  }, [navigate]);
 
   const handleEdit = () => {
     setIsEditing(true);
@@ -21,25 +53,55 @@ const Profile = () => {
 
   const handleCancel = () => {
     setIsEditing(false);
-    setUser(initialUser); // Khôi phục dữ liệu ban đầu
+    // Khôi phục dữ liệu từ API
+    const fetchUser = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const response = await axios.get("https://assistant.baopanel.com/api/user", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setUser({
+          name: response.data.name || "Không có dữ liệu",
+          age: response.data.age || "Không có dữ liệu",
+          gender: response.data.gender || "Không có dữ liệu",
+          email: response.data.email || "Không có dữ liệu",
+        });
+      } catch (err) {
+        setError(err.response?.data?.message || "Failed to fetch user data.");
+      }
+    };
+    fetchUser();
   };
 
-  const handleSave = () => {
-    // Lưu dữ liệu vào localStorage
-    localStorage.setItem("name", user.name);
-    localStorage.setItem("age", user.age);
-    localStorage.setItem("gender", user.gender);
-    localStorage.setItem("email", user.email);
-    setIsEditing(false);
+  const handleSave = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      await axios.patch(
+        "https://assistant.baopanel.com/api/user",
+        {
+          name: user.name,
+          age: user.age,
+          gender: user.gender,
+          email: user.email,
+        },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setIsEditing(false);
+      setError("");
+    } catch (err) {
+      if (err.response?.status === 401) {
+        localStorage.removeItem("token");
+        localStorage.removeItem("isLoggedIn");
+        navigate("/login");
+      } else {
+        setError(err.response?.data?.message || "Failed to update user data.");
+      }
+    }
   };
 
   const handleLogout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("isLoggedIn");
-    localStorage.removeItem("name");
-    localStorage.removeItem("age");
-    localStorage.removeItem("gender");
-    localStorage.removeItem("email");
     navigate("/");
   };
 
@@ -56,6 +118,8 @@ const Profile = () => {
           <p className="mb-8 text-sm italic text-gray-100">
             Here are your account details.
           </p>
+
+          {error && <p className="mb-4 text-sm text-red-200">{error}</p>}
 
           {isEditing ? (
             // Form chỉnh sửa
