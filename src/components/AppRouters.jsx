@@ -7,6 +7,7 @@ import AiAssistant from "../pages/AiAssistant";
 import Login from "../pages/Auth/LoginPage";
 import Register from "../pages/Auth/Register";
 import LearningPlanPage from "../pages/LearningPlanPage";
+import Profile from "../pages/Profile";
 
 const AppRouters = () => {
   return (
@@ -17,6 +18,7 @@ const AppRouters = () => {
       <Route path="/AiAssistant" element={<AiAssistant />} />
       <Route path="/Login" element={<Login />} />
       <Route path="/register" element={<Register/>} />
+      <Route path="/profile" element={<Profile/>} />
       <Route path="/learning-plan" element={<LearningPlanPage />} />
       {/* <Route path="/Resources" element={<Resources />} />
       <Route path="/Research" element={<Research />} />
