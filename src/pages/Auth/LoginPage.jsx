@@ -22,13 +22,13 @@ const Login = () => {
           password,
         }
       );
-      console.log(response.data.token);
 
       // Check if token is returned and store it in localStorage
-      if (response.data.token) {
-        localStorage.setItem("token", response.data.token);
+      if (response) {
+        console.log(response);
+        localStorage.setItem("token", response.data.data.token);
         localStorage.setItem("isLoggedIn", "true"); // Lưu trạng thái đăng nhập
-        console.log("Token stored:", response.data.token);
+        console.log("Token stored:", response.data.data.token);
       } else {
         console.warn("No token returned from login API");
       }

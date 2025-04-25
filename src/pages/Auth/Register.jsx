@@ -15,7 +15,7 @@ const Register = () => {
   const [gender, setGender] = useState("");
   const [error, setError] = useState("");
   const navigate = useNavigate();
-
+  const language = "vn";
   const handleRegister = async (e) => {
     e.preventDefault();
     setError(""); // Reset error message
@@ -30,20 +30,22 @@ const Register = () => {
       const response = await axios.post(
         "https://assistant.baopanel.com/api/auth/register",
         {
-          email,
-          password,
-          password_confirmation: passwordConfirmation,
-          name,
           age,
           gender,
+          name,
+          email,
+          language,
+          password,
+          password_confirmation: passwordConfirmation,
         }
       );
 
       // Check if token is returned and store it in localStorage
-      if (response.data.token) {
-        localStorage.setItem("token", response.data.token);
+      if (response) {
+        console.log(response);
+        localStorage.setItem("token", response.data.data.token);
         localStorage.setItem("isLoggedIn", "true");
-        console.log("Token stored:", response.data.token);
+        console.log("Token stored:", response.data.data.token);
       } else {
         console.warn("No token returned from register API");
       }
