@@ -1,7 +1,7 @@
 import React from "react";
 import { FaBook, FaCode, FaClock, FaLanguage, FaList, FaRocket, FaTasks, FaVideo } from "react-icons/fa";
 
-const Dashboard = ({ courseData, handleSubmit, prevStep }) => {
+const Dashboard = ({ courseData, handleSubmit, prevStep, isLoading }) => {
   const dataFields = [
     {
       label: "Course Name",
@@ -61,7 +61,7 @@ const Dashboard = ({ courseData, handleSubmit, prevStep }) => {
   ];
 
   return (
-    <div className="max-w-3xl mx-auto bg-light dark:bg-dark rounded-lg shadow-lg p-8">
+    <div className="max-w-3xl mx-auto bg-light dark:bg-dark rounded-lg shadow-lg p-8 relative">
       <h2 className="text-2xl font-semibold text-primary dark:text-white mb-6 font-sans">
         Review Your Course Preferences
       </h2>
@@ -88,15 +88,32 @@ const Dashboard = ({ courseData, handleSubmit, prevStep }) => {
       <div className="flex justify-between">
         <button
           onClick={prevStep}
-          className="bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500 text-primary dark:text-gray-300 font-medium py-2 px-6 rounded-lg transition font-sans"
+          className={`bg-gray-200 dark:bg-gray-600 text-primary dark:text-gray-300 font-medium py-2 px-6 rounded-lg transition font-sans ${
+            isLoading
+              ? "opacity-50 cursor-not-allowed"
+              : "hover:bg-gray-300 dark:hover:bg-gray-500"
+          }`}
+          disabled={isLoading}
         >
           Back
         </button>
         <button
           onClick={handleSubmit}
-          className="bg-accent hover:bg-accent/80 text-white font-medium py-3 px-6 rounded-lg transition transform hover:scale-105 font-sans"
+          className={`flex items-center justify-center font-medium py-3 px-6 rounded-lg transition transform font-sans ${
+            isLoading
+              ? "bg-accent/50 text-white cursor-not-allowed"
+              : "bg-accent hover:bg-accent/80 text-white hover:scale-105"
+          }`}
+          disabled={isLoading}
         >
-          Create course
+          {isLoading ? (
+            <>
+              <span className="animate-spin rounded-full h-5 w-5 border-t-2 border-white border-solid mr-2"></span>
+              <span>Creating...</span>
+            </>
+          ) : (
+            <span>Create course</span>
+          )}
         </button>
       </div>
     </div>

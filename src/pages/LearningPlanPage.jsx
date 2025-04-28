@@ -30,8 +30,12 @@ const LearningPlan = () => {
   const [exerciseResults, setExerciseResults] = useState({});
   const [timers, setTimers] = useState({});
   const [loading, setLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false); // State cho overlay loading
+  const [loadingMessage, setLoadingMessage] = useState(""); // Thông điệp loading
   const [weekSummary, setWeekSummary] = useState(null);
-  const [finalExercise, setFinalExercise] = useState(null);
+  const [finalExerciseData, setFinalExerciseData] = useState(null);
+  const [isFetchingFinalExercise, setIsFetchingFinalExercise] = useState(false);
+  const [hasFetchedFinalExercise, setHasFetchedFinalExercise] = useState(false);
 
   // Lấy thông tin khóa học và tuần hiện tại khi component mount
   useEffect(() => {
@@ -39,6 +43,9 @@ const LearningPlan = () => {
 
     const fetchInitialData = async () => {
       try {
+        setIsLoading(true);
+        setLoadingMessage("Fetching course profile...");
+
         const profileResponse = await getProfiles();
         const profile = profileResponse.data.find((p) => p.id === profileId);
         if (!profile) throw new Error("Profile not found");
@@ -49,14 +56,19 @@ const LearningPlan = () => {
 
         try {
           if (storedWeekId) {
+            setLoadingMessage(`Fetching tasks for week ${storedWeekId}...`);
+            console.log(`Fetching tasks for week ${storedWeekId}`);
             weekResponse = await getTasksByWeek(storedWeekId);
           } else {
+            setLoadingMessage(`Fetching tasks for profile ${profileId}...`);
+            console.log(`Fetching tasks by profile ${profileId}`);
             weekResponse = await getTasksByProfile(profileId);
             const initialWeekId = weekResponse.data.week.id;
             localStorage.setItem(`weekId_${profileId}`, initialWeekId);
           }
         } catch (error) {
           console.error(`Error fetching tasks for week ${storedWeekId}:`, error.message);
+          setLoadingMessage(`Fetching tasks for profile ${profileId} (fallback)...`);
           weekResponse = await getTasksByProfile(profileId);
           const fallbackWeekId = weekResponse.data.week.id;
           localStorage.setItem(`weekId_${profileId}`, fallbackWeekId);
@@ -87,7 +99,11 @@ const LearningPlan = () => {
           });
         }
       } finally {
-        if (isMounted) setLoading(false);
+        if (isMounted) {
+          setIsLoading(false);
+          setLoadingMessage("");
+          setLoading(false);
+        }
       }
     };
 
@@ -106,6 +122,9 @@ const LearningPlan = () => {
       if (!weekData?.tasks_by_day || !weekData.week?.id) return;
 
       try {
+        setIsLoading(true);
+        setLoadingMessage("Fetching exercises summary...");
+
         const summaryResponse = await getExercisesSummary(weekData.week.id);
         const resultsData = summaryResponse.data.results || [];
         const resultsMap = {};
@@ -127,6 +146,7 @@ const LearningPlan = () => {
 
         for (const task of completedTasks) {
           try {
+            setLoadingMessage(`Fetching exercises for task ${task.id}...`);
             const exerciseResponse = await getExerciseByTaskId(task.id);
             const exerciseData = Array.isArray(exerciseResponse.data)
               ? exerciseResponse.data
@@ -142,6 +162,7 @@ const LearningPlan = () => {
         const allTasksCompleted = allTasks.every((task) => task.is_done);
         if (allTasksCompleted) {
           try {
+            setLoadingMessage("Fetching week summary...");
             const summaryResponse = await getExercisesSummary(weekData.week.id);
             if (summaryResponse.status === 200) {
               if (isMounted) setWeekSummary(summaryResponse.data);
@@ -152,6 +173,11 @@ const LearningPlan = () => {
         }
       } catch (error) {
         console.error(`Error fetching exercises summary:`, error.message);
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+          setLoadingMessage("");
+        }
       }
     };
 
@@ -161,26 +187,62 @@ const LearningPlan = () => {
       isMounted = false;
     };
   }, [weekData]);
+  // Fetch bài tập cuối tuần khi chuyển sang tab Exam
+  useEffect(() => {
+    if (currentDay !== "Exam" || hasFetchedFinalExercise || !weekData?.week?.id) return;
 
-  // Lấy bài tập cuối tuần khi nhấn vào tab Exam
-  const fetchFinalExercise = async () => {
-    try {
-      const finalExerciseResponse = await getExercisesByWeekId(weekData.week.id);
-      const finalExerciseData = finalExerciseResponse.data && finalExerciseResponse.data.length > 0 ? finalExerciseResponse.data[0] : null;
-      setFinalExercise(finalExerciseData);
-      if (finalExerciseData) {
-        setTimers((prev) => ({ ...prev, "final_exercise": { start: new Date() } }));
-        toast.info("Weekly Final Exercise is now available!", {
-          position: "top-right",
-          autoClose: 3000,
-          hideProgressBar: false,
-          closeOnClick: true,
-          pauseOnHover: true,
-          draggable: true,
-          className: "bg-yellow-600 text-white",
-        });
-      } else {
-        toast.error("No final exercise available for this week.", {
+    const fetchFinalExercise = async () => {
+      setIsFetchingFinalExercise(true);
+      setIsLoading(true);
+      setLoadingMessage("Fetching weekly final exercise...");
+
+      try {
+        
+        const finalExerciseResponse = await getExercisesByWeekId(weekData.week.id);
+        
+        const finalExerciseData = finalExerciseResponse.data && finalExerciseResponse.data.length > 0
+          ? { ...finalExerciseResponse.data[0], is_submitted: 0 }
+          : null;
+
+        setFinalExerciseData(finalExerciseData);
+        setHasFetchedFinalExercise(true);
+
+        if (finalExerciseData) {
+          setUserAnswers((prev) => {
+            const newAnswers = { ...prev };
+            delete newAnswers[finalExerciseData.id];
+            return newAnswers;
+          });
+          setExerciseResults((prev) => {
+            const newResults = { ...prev };
+            delete newResults[finalExerciseData.id];
+            return newResults;
+          });
+          setTimers((prev) => ({ ...prev, "final_exercise": { start: new Date() } }));
+          toast.info("Weekly Final Exercise is now available!", {
+            position: "top-right",
+            autoClose: 3000,
+            hideProgressBar: false,
+            closeOnClick: true,
+            pauseOnHover: true,
+            draggable: true,
+            className: "bg-yellow-600 text-white",
+          });
+        } else {
+          toast.error("No final exercise available for this week.", {
+            position: "top-right",
+            autoClose: 3000,
+            hideProgressBar: false,
+            closeOnClick: true,
+            pauseOnHover: true,
+            draggable: true,
+            className: "bg-red-600 text-white",
+          });
+        }
+      } catch (error) {
+        console.error("Error fetching final exercise:", error.message);
+        setHasFetchedFinalExercise(true);
+        toast.error("Failed to load Weekly Final Exercise.", {
           position: "top-right",
           autoClose: 3000,
           hideProgressBar: false,
@@ -189,23 +251,20 @@ const LearningPlan = () => {
           draggable: true,
           className: "bg-red-600 text-white",
         });
+      } finally {
+        setIsFetchingFinalExercise(false);
+        setIsLoading(false);
+        setLoadingMessage("");
       }
-    } catch (error) {
-      console.error("Error fetching final exercise:", error.message);
-      toast.error("Failed to load Weekly Final Exercise.", {
-        position: "top-right",
-        autoClose: 3000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true,
-        className: "bg-red-600 text-white",
-      });
-    }
-  };
+    };
 
-  // Lấy bài tập theo task (cho task chưa hoàn thành)
+    fetchFinalExercise();
+  }, [currentDay, weekData, hasFetchedFinalExercise]);
+
   const fetchExercises = async (taskId) => {
+    setIsLoading(true);
+    setLoadingMessage(`Loading exercises for task ${taskId}...`);
+
     try {
       const response = await getExerciseByTaskId(taskId);
       const exerciseData = Array.isArray(response.data) ? response.data : response.data.data || [];
@@ -230,12 +289,30 @@ const LearningPlan = () => {
         draggable: true,
         className: "bg-red-600 text-white",
       });
+    } finally {
+      setIsLoading(false);
+      setLoadingMessage("");
     }
   };
 
-  // Submit bài tập
   const handleSubmitExercise = async (taskId, exerciseId, answer) => {
+    setIsLoading(true);
+    setLoadingMessage("Submitting your exercise answer...");
+
     try {
+      if (!answer || answer.trim() === "") {
+        toast.error("Please provide an answer before submitting.", {
+          position: "top-right",
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+          className: "bg-red-600 text-white",
+        });
+        return;
+      }
+
       const response = await submitExercise({ id: exerciseId, user_answer: answer });
       setExerciseResults((prev) => ({
         ...prev,
@@ -245,6 +322,9 @@ const LearningPlan = () => {
         ...prev,
         [taskId]: { ...prev[taskId], end: new Date() },
       }));
+      if (taskId === "final_exercise" && finalExerciseData) {
+        setFinalExerciseData((prev) => ({ ...prev, is_submitted: 1 }));
+      }
       toast.success(response.message, {
         position: "top-right",
         autoClose: 3000,
@@ -254,10 +334,6 @@ const LearningPlan = () => {
         draggable: true,
         className: "bg-blue-600 text-white",
       });
-      // Cập nhật trạng thái submit của finalExercise nếu là bài tập cuối tuần
-      if (taskId === "final_exercise" && finalExercise) {
-        setFinalExercise((prev) => ({ ...prev, is_submitted: 1 }));
-      }
     } catch (error) {
       toast.error(error.message, {
         position: "top-right",
@@ -268,11 +344,16 @@ const LearningPlan = () => {
         draggable: true,
         className: "bg-red-600 text-white",
       });
+    } finally {
+      setIsLoading(false);
+      setLoadingMessage("");
     }
   };
 
-  // Đánh dấu task hoàn thành
   const handleMarkTaskCompleted = async (taskId) => {
+    setIsLoading(true);
+    setLoadingMessage(`Marking task ${taskId} as completed...`);
+
     try {
       await updateTaskStatus(taskId, true);
       setCompletedTasks((prev) => ({ ...prev, [taskId]: true }));
@@ -306,20 +387,21 @@ const LearningPlan = () => {
         draggable: true,
         className: "bg-red-600 text-white",
       });
+    } finally {
+      setIsLoading(false);
+      setLoadingMessage("");
     }
   };
 
-  // Kiểm tra điều kiện để bật nút Generate for Next Week
   const canGenerateNextWeek = () => {
     if (!weekData?.tasks_by_day) return false;
     const allTasksDone = Object.values(weekData.tasks_by_day).every((tasks) =>
       tasks.every((task) => task.is_done)
     );
-    const isFinalExerciseSubmitted = finalExercise ? finalExercise.is_submitted === 1 : false;
+    const isFinalExerciseSubmitted = finalExerciseData ? finalExerciseData.is_submitted === 1 : false;
     return allTasksDone && isFinalExerciseSubmitted;
   };
 
-  // Kiểm tra điều kiện để hiển thị tab Exam
   const canShowExamTab = () => {
     if (!weekData?.tasks_by_day) return false;
     return Object.values(weekData.tasks_by_day).every((tasks) =>
@@ -327,21 +409,27 @@ const LearningPlan = () => {
     );
   };
 
-  // Tạo task cho tuần tiếp theo
   const handleGenerateNextWeek = async () => {
+    setIsLoading(true);
+    setLoadingMessage("Generating tasks for next week...");
+
     try {
       const response = await generateNext({ profile_id: profileId });
       const newWeek = response.data.week;
       const feedback = response.data.feedback;
       localStorage.setItem(`weekId_${profileId}`, newWeek.id);
+
+      setLoadingMessage("Fetching tasks for the new week...");
       const weekResponse = await getTasksByWeek(newWeek.id);
+
       setWeekData({ ...weekResponse.data, feedback });
       setWeekSummary(null);
       setExercises({});
       setExerciseResults({});
       setUserAnswers({});
       setTimers({});
-      setFinalExercise(null);
+      setFinalExerciseData(null);
+      setHasFetchedFinalExercise(false);
       setCurrentDay("Monday");
       toast.success("Tasks generated for next week", {
         position: "top-right",
@@ -362,10 +450,12 @@ const LearningPlan = () => {
         draggable: true,
         className: "bg-red-600 text-white",
       });
+    } finally {
+      setIsLoading(false);
+      setLoadingMessage("");
     }
   };
 
-  // Tính tiến độ
   const calculateProgress = () => {
     if (!weekData?.tasks_by_day) return { completedCount: 0, totalTasks: 0, percentage: 0 };
     let totalTasks = 0;
@@ -378,7 +468,6 @@ const LearningPlan = () => {
     return { completedCount, totalTasks, percentage };
   };
 
-  // Format ngày
   const formatDate = (dateString) => {
     if (!dateString) return "N/A";
     return new Date(dateString).toLocaleDateString("en-GB", {
@@ -397,10 +486,22 @@ const LearningPlan = () => {
   if (!course || !profileId) {
     return <div className="text-center py-8">No course selected.</div>;
   }
-
+  console.log(finalExerciseData);
+  
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 font-poppins">
-      {/* Course Info Section */}
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 font-poppins relative">
+      {/* Overlay Loading */}
+      {isLoading && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 flex flex-col items-center shadow-lg">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-blue-500 border-solid mb-4"></div>
+            <p className="text-lg text-gray-800 dark:text-gray-200 font-medium">
+              {loadingMessage}
+            </p>
+          </div>
+        </div>
+      )}
+
       <header className="bg-white rounded-xl shadow-md p-6 mb-8">
         <h1 className="text-3xl font-bold text-gray-800">{course.course_name}</h1>
         <p className="text-gray-600 mt-2">{course.goals}</p>
@@ -420,23 +521,30 @@ const LearningPlan = () => {
           </span>
           <button
             onClick={handleGenerateNextWeek}
-            disabled={!canGenerateNextWeek()}
+            disabled={!canGenerateNextWeek() || isLoading}
             className={`px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors ${
-              canGenerateNextWeek()
+              canGenerateNextWeek() && !isLoading
                 ? "bg-blue-600 hover:bg-blue-700 text-white"
                 : "bg-gray-300 text-gray-500 cursor-not-allowed"
             }`}
           >
-            <FaPlus className="text-sm" />
-            <span>Generate for Next Week</span>
+            {isLoading ? (
+              <>
+                <span className="animate-spin rounded-full h-5 w-5 border-t-2 border-white border-solid mr-2"></span>
+                <span>Generating...</span>
+              </>
+            ) : (
+              <>
+                <FaPlus className="text-sm" />
+                <span>Generate for Next Week</span>
+              </>
+            )}
           </button>
         </div>
       </header>
 
-      {/* Week Info Section */}
       <WeekInfo weekData={weekData} />
 
-      {/* Progress Summary */}
       <div className="bg-white rounded-xl shadow-md p-6 mb-8">
         <h2 className="text-xl font-semibold text-gray-800 mb-4">Weekly Progress</h2>
         <div className="flex items-center mb-2">
@@ -453,7 +561,6 @@ const LearningPlan = () => {
         </div>
       </div>
 
-      {/* Weekly Plan Navigation */}
       <div className="flex overflow-x-auto mb-6 bg-white rounded-lg shadow-sm">
         {["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"].map(
           (day) => (
@@ -463,6 +570,7 @@ const LearningPlan = () => {
                 currentDay === day ? "border-b-3 border-blue-500 text-blue-600 font-semibold" : ""
               }`}
               onClick={() => setCurrentDay(day)}
+              disabled={isLoading}
             >
               {day}
             </button>
@@ -473,19 +581,14 @@ const LearningPlan = () => {
             className={`px-6 py-3 text-gray-600 font-medium ${
               currentDay === "Exam" ? "border-b-3 border-blue-500 text-blue-600 font-semibold" : ""
             }`}
-            onClick={() => {
-              setCurrentDay("Exam");
-              if (!finalExercise) {
-                fetchFinalExercise();
-              }
-            }}
+            onClick={() => setCurrentDay("Exam")}
+            disabled={isLoading}
           >
             Exam
           </button>
         )}
       </div>
 
-      {/* Tasks Display hoặc Final Exercise */}
       <div className="grid gap-4 mb-8">
         {currentDay !== "Exam" ? (
           weekData?.tasks_by_day?.[currentDay]?.length > 0 ? (
@@ -542,9 +645,21 @@ const LearningPlan = () => {
                     {!task.is_done && (
                       <button
                         onClick={() => handleMarkTaskCompleted(task.id)}
-                        className="mt-3 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg"
+                        className={`mt-3 bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2 ${
+                          isLoading
+                            ? "bg-blue-600/50 cursor-not-allowed"
+                            : "hover:bg-blue-700"
+                        }`}
+                        disabled={isLoading}
                       >
-                        Mark as Completed
+                        {isLoading ? (
+                          <>
+                            <span className="animate-spin rounded-full h-5 w-5 border-t-2 border-white border-solid mr-2"></span>
+                            <span>Marking...</span>
+                          </>
+                        ) : (
+                          <span>Mark as Completed</span>
+                        )}
                       </button>
                     )}
                   </div>
@@ -567,9 +682,21 @@ const LearningPlan = () => {
                   {!task.is_done && (
                     <button
                       onClick={() => fetchExercises(task.id)}
-                      className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg mb-4"
+                      className={`bg-blue-600 text-white px-4 py-2 rounded-lg mb-4 flex items-center space-x-2 ${
+                        isLoading
+                          ? "bg-blue-600/50 cursor-not-allowed"
+                          : "hover:bg-blue-700"
+                      }`}
+                      disabled={isLoading}
                     >
-                      Load Exercises
+                      {isLoading ? (
+                        <>
+                          <span className="animate-spin rounded-full h-5 w-5 border-t-2 border-white border-solid mr-2"></span>
+                          <span>Loading...</span>
+                        </>
+                      ) : (
+                        <span>Load Exercises</span>
+                      )}
                     </button>
                   )}
                   {exercises[task.id]?.length > 0 ? (
@@ -584,6 +711,7 @@ const LearningPlan = () => {
                         exerciseResults={exerciseResults}
                         timers={timers}
                         handleSubmitExercise={handleSubmitExercise}
+                        isLoading={isLoading} // Truyền isLoading xuống ExerciseItem
                       />
                     ))
                   ) : (
@@ -598,27 +726,29 @@ const LearningPlan = () => {
             <p>No tasks for this day.</p>
           )
         ) : (
-          finalExercise ? (
-            <div className="bg-white rounded-lg shadow p-5">
-              <h2 className="text-xl font-semibold text-gray-800 mb-4">Weekly Final Exam</h2>
+          <div className="bg-white rounded-lg shadow p-5">
+            <h2 className="text-xl font-semibold text-gray-800 mb-4">Weekly Final Exam</h2>
+            {isFetchingFinalExercise ? (
+              <p>Loading final exam...</p>
+            ) : finalExerciseData ? (
               <ExerciseItem
-                exercise={finalExercise}
+                exercise={finalExerciseData}
                 taskId="final_exercise"
-                isTaskDone={finalExercise.is_submitted}
+                isTaskDone={finalExerciseData.is_submitted}
                 userAnswers={userAnswers}
                 setUserAnswers={setUserAnswers}
                 exerciseResults={exerciseResults}
                 timers={timers}
                 handleSubmitExercise={handleSubmitExercise}
+                isLoading={isLoading} // Truyền isLoading xuống ExerciseItem
               />
-            </div>
-          ) : (
-            <p>Loading final exam...</p>
-          )
+            ) : (
+              <p>No final exam available for this week.</p>
+            )}
+          </div>
         )}
       </div>
 
-      {/* Section 1: Exercises Tổng Quát của Cả Tuần */}
       {canShowExamTab() && (
         <div className="bg-white rounded-xl shadow-md p-6 mb-8">
           <h2 className="text-xl font-semibold text-gray-800 mb-4">Weekly Exercises Overview</h2>
@@ -652,8 +782,7 @@ const LearningPlan = () => {
         </div>
       )}
 
-      {/* Section 2: Summary Exercises của Tuần */}
-      {weekSummary && (
+      {/* {weekSummary && (
         <div className="bg-white rounded-xl shadow-md p-6 mb-8">
           <h2 className="text-xl font-semibold text-gray-800 mb-4">Weekly Exercises Summary</h2>
           <div className="text-sm text-gray-600">
@@ -662,7 +791,7 @@ const LearningPlan = () => {
             <p>Total Score: {weekSummary.summary.score}</p>
           </div>
         </div>
-      )}
+      )} */}
     </div>
   );
 };

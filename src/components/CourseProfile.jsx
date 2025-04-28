@@ -27,6 +27,7 @@ const CourseProfile = ({
   handleNavigateLearningPlan,
   setIsTasksModalOpen,
   handleDelete,
+  isNavigating, // Nhận trạng thái loading từ Courses
 }) => {
   return (
     <div className="min-h-screen bg-gray-100 font-poppins">
@@ -106,9 +107,7 @@ const CourseProfile = ({
                     </div>
                   </div>
 
-                  {/* 4 trường được sửa thành 2 dòng */}
                   <div className="grid grid-cols-2 gap-4 mb-4">
-                    {/* Dòng 1: Skills Focus và Learning Goal */}
                     <div className="flex items-start space-x-2 p-3 bg-blue-50 rounded-md hover:bg-blue-100 transition-colors">
                       <FaLightbulb className="text-blue-600 mt-1" />
                       <div>
@@ -133,7 +132,6 @@ const CourseProfile = ({
                       </div>
                     </div>
 
-                    {/* Dòng 2: Learning Style và Daily Time */}
                     <div className="flex items-start space-x-2 p-3 bg-blue-50 rounded-md hover:bg-blue-100 transition-colors">
                       <FaBrain className="text-blue-600 mt-1" />
                       <div>
@@ -159,9 +157,14 @@ const CourseProfile = ({
                     </button>
                     <button
                       onClick={() => handleNavigateLearningPlan(profile.id, profile.course_name)}
-                      className="flex-grow py-2 px-3 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-lg text-sm font-medium transition-colors"
+                      className={`flex-grow py-2 px-3 rounded-lg text-sm font-medium transition-colors ${
+                        isNavigating
+                          ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                          : "bg-blue-50 hover:bg-blue-100 text-blue-600"
+                      }`}
+                      disabled={isNavigating}
                     >
-                      <FaTasks className="inline mr-1" /> Tasks
+                      <FaTasks className="inline mr-1" /> {isNavigating ? "Loading..." : "Tasks"}
                     </button>
                   </div>
                 </div>
@@ -281,7 +284,6 @@ const CourseProfile = ({
           </div>
         </div>
       </main>
-
     </div>
   );
 };

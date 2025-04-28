@@ -7,10 +7,14 @@ import Skills from "../components/CollectInforStep/Skills";
 import Preferences from "../components/CollectInforStep/Preferences";
 import Dashboard from "../components/CollectInforStep/Dashboard";
 import ProgressSteps from "../components/CollectInforStep/ProgressSteps";
-import { storeProfile } from "../utils/api";
+import { storeProfile, generate } from "../utils/api";
+import { useNavigate } from "react-router-dom";
 
 const CreateCourse = () => {
+  const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(1);
+  const [isLoading, setIsLoading] = useState(false); // State để kiểm soát loading
+  const [loadingMessage, setLoadingMessage] = useState(""); // Thông điệp loading
   const [courseData, setCourseData] = useState({
     course_name: "",
     course_content: [],
@@ -37,6 +41,11 @@ const CreateCourse = () => {
   const handleSubmit = async () => {
     console.log("Submitting courseData:", courseData);
     try {
+      // Bật loading và cập nhật thông điệp
+      setIsLoading(true);
+      setLoadingMessage("Saving your course profile...");
+
+      // Lưu profile
       const response = await storeProfile(courseData);
       toast.success(response.message, {
         position: "top-right",
@@ -48,7 +57,26 @@ const CreateCourse = () => {
         theme: "colored",
       });
       console.log("API Response:", response);
+
+      // Gọi generate để tạo tasks cho tuần đầu tiên
+      const profileId = response.data.id; // Giả sử API trả về id của profile vừa tạo
+      if (!profileId) throw new Error("Profile ID not found in response");
+
+      // Cập nhật thông điệp loading cho bước generate
+      setLoadingMessage("Generating tasks for your course...");
+
+      console.log(`Generating tasks for profile ${profileId}`);
+      const generateResponse = await generate({ profile_id: profileId });
+      console.log("Generate response:", generateResponse.data);
+
+      // Tắt loading và chuyển hướng
+      setIsLoading(false);
+      setLoadingMessage("");
+      navigate("/Courses");
     } catch (error) {
+      // Tắt loading nếu có lỗi
+      setIsLoading(false);
+      setLoadingMessage("");
       toast.error(error.message, {
         position: "top-right",
         autoClose: 5000,
@@ -58,12 +86,26 @@ const CreateCourse = () => {
         draggable: true,
         theme: "colored",
       });
-      console.error("Error storing profile:", error.message);
+      console.error("Error storing profile or generating tasks:", error.message);
     }
   };
 
   return (
-    <div className="min-h-screen bg-light dark:bg-dark font-sans">
+    <div className="min-h-screen bg-light dark:bg-dark font-sans relative">
+      {/* Overlay Loading */}
+      {isLoading && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 flex flex-col items-center shadow-lg">
+            {/* Spinner */}
+            <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-blue-500 border-solid mb-4"></div>
+            {/* Thông điệp loading */}
+            <p className="text-lg text-gray-800 dark:text-gray-200 font-medium">
+              {loadingMessage}
+            </p>
+          </div>
+        </div>
+      )}
+
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="text-center mb-12">
           <h1 className="text-4xl font-bold text-primary dark:text-white sm:text-5xl">
@@ -110,6 +152,7 @@ const CreateCourse = () => {
             courseData={courseData}
             handleSubmit={handleSubmit}
             prevStep={prevStep}
+            isLoading={isLoading} // Truyền isLoading xuống Dashboard để disable nút nếu cần
           />
         )}
       </div>

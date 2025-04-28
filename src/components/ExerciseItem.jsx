@@ -26,19 +26,22 @@ const ExerciseItem = ({
 
   // Xử lý thay đổi đáp án
   const handleAnswerChange = (value) => {
-    if (isTaskDone || exerciseResults[exercise.id]) return; // Không cho chỉnh sửa nếu task đã hoàn thành hoặc đã submit
+    if (isTaskDone || exercise.is_submitted || exerciseResults[exercise.id]) return; // Không cho chỉnh sửa nếu đã nộp
     setUserAnswers((prev) => ({ ...prev, [exercise.id]: value }));
   };
 
   // Xử lý submit
   const handleSubmit = () => {
-    if (isTaskDone || exerciseResults[exercise.id]) return; // Không cho submit nếu task đã hoàn thành hoặc đã submit
-    if (!userAnswers[exercise.id]) {
+    if (isTaskDone || exercise.is_submitted || exerciseResults[exercise.id]) return; // Không cho submit nếu đã nộp
+    if (!userAnswers[exercise.id] || userAnswers[exercise.id].trim() === "") {
       alert("Please provide an answer before submitting.");
       return;
     }
     handleSubmitExercise(taskId, exercise.id, userAnswers[exercise.id]);
   };
+
+  // Kiểm tra xem bài tập có được coi là đã nộp không
+  const isSubmitted = exercise.is_submitted || exerciseResults[exercise.id] || isTaskDone;
 
   return (
     <div className="bg-gray-50 p-3 rounded-lg mb-2">
@@ -48,12 +51,14 @@ const ExerciseItem = ({
         <p className="text-sm text-gray-600">Difficulty: {exercise.difficulty}</p>
       )}
 
-      {(isTaskDone || exerciseResults[exercise.id]) ? (
+      {isSubmitted ? (
         <div className="mt-2 p-3 bg-green-100 rounded">
           <p className="text-sm">
             <strong>Your Answer:</strong>{" "}
             {exerciseResults[exercise.id]?.your_answer ||
-              exerciseResults[exercise.id]?.user_answer}
+              exerciseResults[exercise.id]?.user_answer ||
+              userAnswers[exercise.id] ||
+              "Not provided"}
           </p>
           <p className="text-sm">
             <strong>Correct:</strong>{" "}
@@ -89,11 +94,11 @@ const ExerciseItem = ({
                     new Date(exerciseResults[exercise.id].date.start_time)) /
                     1000
                 )
-              : Math.floor(
-                  (new Date(timers[taskId]?.end || Date.now()) -
-                    new Date(timers[taskId]?.start)) /
-                    1000
-                )}{" "}
+              : timers[taskId]?.end
+              ? Math.floor(
+                  (new Date(timers[taskId].end) - new Date(timers[taskId].start)) / 1000
+                )
+              : elapsedTime}{" "}
             seconds
           </p>
         </div>
@@ -106,6 +111,7 @@ const ExerciseItem = ({
               placeholder="Enter your answer..."
               value={userAnswers[exercise.id] || ""}
               onChange={(e) => handleAnswerChange(e.target.value)}
+              disabled={isTaskDone || exercise.is_submitted}
             />
           ) : (
             <div className="space-y-2">
@@ -119,6 +125,7 @@ const ExerciseItem = ({
                       checked={userAnswers[exercise.id] === String.fromCharCode(65 + index)}
                       onChange={(e) => handleAnswerChange(e.target.value)}
                       className="form-radio"
+                      disabled={isTaskDone || exercise.is_submitted}
                     />
                     <span>{option}</span>
                   </label>
@@ -131,7 +138,7 @@ const ExerciseItem = ({
           <button
             onClick={handleSubmit}
             className="mt-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg"
-            disabled={!userAnswers[exercise.id]}
+            disabled={!userAnswers[exercise.id] || userAnswers[exercise.id].trim() === ""}
           >
             Submit
           </button>
