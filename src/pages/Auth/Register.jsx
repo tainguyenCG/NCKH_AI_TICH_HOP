@@ -43,7 +43,7 @@ const Register = () => {
       // Check if token is returned and store it in localStorage
       if (response) {
         console.log(response);
-        localStorage.setItem("token", response.data.data.token);
+        localStorage.setItem("authToken", response.data.data.token);
         localStorage.setItem("isLoggedIn", "true");
         console.log("Token stored:", response.data.data.token);
       } else {

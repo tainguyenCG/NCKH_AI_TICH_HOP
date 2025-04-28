@@ -35,3 +35,9 @@
     50% { transform: scale(1.2); }
   }
   
+  .Toastify__toast--success {
+    background: #1f2937 !important;
+  }
+  .Toastify__toast--error {
+    background: #e54646 !important;
+  }

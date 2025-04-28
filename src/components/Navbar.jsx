@@ -31,7 +31,7 @@ const Navbar = () => {
 
   // Xử lý đăng xuất
   const handleLogout = () => {
-    localStorage.removeItem("token"); // Xóa token
+    localStorage.removeItem("authToken"); // Xóa token
     localStorage.removeItem("isLoggedIn"); // Xóa trạng thái đăng nhập
     setIsDropdownOpen(false); // Đóng dropdown
     navigate("/"); // Điều hướng về trang chủ
@@ -125,7 +125,7 @@ const Navbar = () => {
                     onClick={() => setIsDropdownOpen(!isDropdownOpen)}
                     className="inline-flex items-center px-4 py-2 text-sm font-medium text-white border border-transparent rounded-md bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 dark:from-indigo-500 dark:to-purple-500"
                   >
-                    Profile
+                    User
                     <svg
                       className="w-4 h-4 ml-2 -mr-1"
                       fill="none"
@@ -145,18 +145,18 @@ const Navbar = () => {
                     <div className="absolute right-0 z-10 w-48 mt-2 bg-white rounded-md shadow-lg dark:bg-gray-800">
                       <button
                         onClick={() => {
-                          navigate("/profile");
+                          navigate("/UserProfile");
                           setIsDropdownOpen(false);
                         }}
                         className="block w-full px-4 py-2 text-sm text-left text-gray-800 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-700"
                       >
-                        View Profile
+                        View User Profile
                       </button>
                       <button
                         onClick={handleLogout}
                         className="block w-full px-4 py-2 text-sm text-left text-gray-800 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-700"
                       >
-                        Logout
+                        Log out
                       </button>
                     </div>
                   )}

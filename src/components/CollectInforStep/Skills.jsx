@@ -1,144 +1,114 @@
+import React from "react";
+import { FaCode, FaList, FaTasks } from "react-icons/fa";
 
-import { BsArrowRight, BsArrowLeft } from "react-icons/bs";
-
-const Skills = ({ userData, setUserData, nextStep, prevStep }) => {
-  const handleSkillLevelChange = (e) => {
-    setUserData({
-      ...userData,
-      skills: { ...userData.skills, level: parseInt(e.target.value) },
+const Skills = ({ courseData, setCourseData, nextStep, prevStep }) => {
+  const handleSecondarySkillsChange = (e) => {
+    const skills = e.target.value.split(",").map((skill) => skill.trim());
+    setCourseData({
+      ...courseData,
+      secondary_skills: skills,
     });
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (!userData.skills.primary) {
-      alert("Please specify your primary skill area");
+  const handleSkillLevelChange = (e) => {
+    setCourseData({
+      ...courseData,
+      skill_level: Number(e.target.value),
+    });
+  };
+
+  const handleSubmit = () => {
+    const { primary_skill, skill_level, goals } = courseData;
+    if (!primary_skill || skill_level <= 0 || !goals) {
+      alert("Please fill in all required fields.");
       return;
     }
     nextStep();
   };
 
   return (
-    <div className="max-w-2xl mx-auto bg-white dark:bg-gray-800 rounded-xl shadow-md p-8">
-      <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-6">
-        Your Skills & Expertise
+    <div className="max-w-2xl mx-auto bg-light dark:bg-dark rounded-lg shadow-lg p-8">
+      <h2 className="text-2xl font-semibold text-primary dark:text-white mb-6 font-sans">
+        Skills and Goals
       </h2>
-      <p className="text-gray-600 dark:text-gray-400 mb-8">
-        Tell us about your current skill levels to help create a personalized learning path
-      </p>
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <div className="space-y-6">
         <div>
-          <label
-            htmlFor="primary-skill"
-            className="block text-gray-700 dark:text-gray-300 mb-2"
-          >
-            Primary Skill Area
+          <label className="flex items-center text-gray-700 dark:text-gray-300 font-medium mb-2 font-sans">
+            <FaCode className="mr-2 text-accent" />
+            Primary Skill
           </label>
           <input
             type="text"
-            id="primary-skill"
-            value={userData.skills.primary}
+            value={courseData.primary_skill}
             onChange={(e) =>
-              setUserData({
-                ...userData,
-                skills: { ...userData.skills, primary: e.target.value },
-              })
+              setCourseData({ ...courseData, primary_skill: e.target.value })
             }
-            placeholder="e.g. Web Development, Data Analysis, Graphic Design"
-            className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white outline-none transition"
+            className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-accent focus:border-accent outline-none dark:bg-gray-800 dark:text-white font-sans"
+            placeholder="e.g. React.JS"
           />
         </div>
         <div>
-          <label className="block text-gray-700 dark:text-gray-300 mb-3">
-            Skill Level in Primary Area
+          <label className="flex items-center text-gray-700 dark:text-gray-300 font-medium mb-2 font-sans">
+            <FaTasks className="mr-2 text-accent" />
+            Skill Level (0-100)
           </label>
-          <div className="flex items-center mb-2">
-            <span className="text-sm text-gray-500 dark:text-gray-400 mr-3 w-16">
-              Beginner
-            </span>
-            <div className="flex-1 bg-gray-200 dark:bg-gray-600 rounded-full h-2.5">
-              <div
-                className="bg-blue-500 h-2.5 rounded-full transition-all duration-500"
-                style={{ width: `${userData.skills.level}%` }}
-              ></div>
+          <div className="relative">
+            <input
+              type="range"
+              min="0"
+              max="100"
+              value={courseData.skill_level}
+              onChange={handleSkillLevelChange}
+              className="w-full h-2 bg-gray-200 dark:bg-gray-600 rounded-lg appearance-none cursor-pointer accent-accent"
+            />
+            <div className="absolute top-[-30px] right-0 text-primary dark:text-white font-medium font-sans">
+              {courseData.skill_level}
             </div>
-            <span className="text-sm text-gray-500 dark:text-gray-400 ml-3 w-16">
-              Expert
-            </span>
           </div>
+        </div>
+        <div>
+          <label className="flex items-center text-gray-700 dark:text-gray-300 font-medium mb-2 font-sans">
+            <FaList className="mr-2 text-accent" />
+            Secondary Skills
+          </label>
           <input
-            type="range"
-            id="skill-level"
-            min="0"
-            max="100"
-            value={userData.skills.level}
-            onChange={handleSkillLevelChange}
-            className="w-full h-2 bg-gray-200 dark:bg-gray-600 rounded-lg appearance-none cursor-pointer"
+            type="text"
+            value={courseData.secondary_skills.join(", ")}
+            onChange={handleSecondarySkillsChange}
+            className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-accent focus:border-accent outline-none dark:bg-gray-800 dark:text-white font-sans"
+            placeholder="e.g. Javascript, HTML/CSS"
           />
         </div>
         <div>
-          <label
-            htmlFor="secondary-skills"
-            className="block text-gray-700 dark:text-gray-300 mb-2"
-          >
-            Secondary Skills (comma separated)
+          <label className="flex items-center text-gray-700 dark:text-gray-300 font-medium mb-2 font-sans">
+            <FaTasks className="mr-2 text-accent" />
+            Goals
           </label>
           <textarea
-            id="secondary-skills"
-            value={userData.skills.secondary.join(", ")}
+            value={courseData.goals}
             onChange={(e) =>
-              setUserData({
-                ...userData,
-                skills: {
-                  ...userData.skills,
-                  secondary: e.target.value
-                    .split(",")
-                    .map((s) => s.trim())
-                    .filter((s) => s),
-                },
-              })
+              setCourseData({ ...courseData, goals: e.target.value })
             }
-            placeholder="e.g. Photography, Public Speaking, Copywriting"
-            className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white outline-none transition"
-            rows="3"
-          ></textarea>
+            className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-accent focus:border-accent outline-none dark:bg-gray-800 dark:text-white font-sans"
+            placeholder="e.g. Tôi cần nâng cao trình độ, cần thêm kiến thức sâu hơn"
+            rows="4"
+          />
         </div>
-        <div>
-          <label
-            htmlFor="learning-goals"
-            className="block text-gray-700 dark:text-gray-300 mb-2"
-          >
-            Specific Learning Goals
-          </label>
-          <textarea
-            id="learning-goals"
-            value={userData.skills.goals}
-            onChange={(e) =>
-              setUserData({
-                ...userData,
-                skills: { ...userData.skills, goals: e.target.value },
-              })
-            }
-            placeholder="What specific knowledge or skills do you want to acquire?"
-            className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white outline-none transition"
-            rows="3"
-          ></textarea>
-        </div>
-        <div className="flex justify-between items-center mt-8">
-          <button
-            onClick={prevStep}
-            className="bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500 text-gray-700 dark:text-gray-300 font-medium py-2 px-6 rounded-lg transition"
-          >
-            <BsArrowLeft className="inline mr-2" /> Back
-          </button>
-          <button
-            type="submit"
-            className="bg-blue-500 hover:bg-blue-600 text-white font-medium py-3 px-6 rounded-lg transition transform hover:scale-105"
-          >
-            Continue to Preferences <BsArrowRight className="inline ml-2" />
-          </button>
-        </div>
-      </form>
+      </div>
+      <div className="flex justify-between mt-8">
+        <button
+          onClick={prevStep}
+          className="bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500 text-primary dark:text-gray-300 font-medium py-2 px-6 rounded-lg transition font-sans"
+        >
+          Back
+        </button>
+        <button
+          onClick={handleSubmit}
+          className="bg-accent hover:bg-accent/80 text-white font-medium py-3 px-6 rounded-lg transition transform hover:scale-105 font-sans"
+        >
+          Continue to Preferences
+        </button>
+      </div>
     </div>
   );
 };

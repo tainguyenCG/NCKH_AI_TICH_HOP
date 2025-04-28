@@ -3,11 +3,11 @@ import { Routes, Route } from "react-router-dom";
 import Home from "../pages/Home";
 import Courses from "../pages/Courses";
 import GeminiSp from "../pages/GeminiSp";
-import AiAssistant from "../pages/AiAssistant";
+import CreateCourse from "../pages/CreateCourse";
 import Login from "../pages/Auth/LoginPage";
 import Register from "../pages/Auth/Register";
 import LearningPlanPage from "../pages/LearningPlanPage";
-import Profile from "../pages/Profile";
+import UserProfile from "../pages/UserProfile";
 
 const AppRouters = () => {
   return (
@@ -15,10 +15,10 @@ const AppRouters = () => {
       <Route path="/" element={<Home />} />
       <Route path="/Courses" element={<Courses />} />
       <Route path="/GeminiSp" element={<GeminiSp />} />
-      <Route path="/AiAssistant" element={<AiAssistant />} />
+      <Route path="/CreateCourse" element={<CreateCourse />} />
       <Route path="/Login" element={<Login />} />
       <Route path="/register" element={<Register/>} />
-      <Route path="/profile" element={<Profile/>} />
+      <Route path="/UserProfile" element={<UserProfile/>} />
       <Route path="/learning-plan" element={<LearningPlanPage />} />
       {/* <Route path="/Resources" element={<Resources />} />
       <Route path="/Research" element={<Research />} />

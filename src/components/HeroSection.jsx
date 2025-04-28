@@ -20,10 +20,10 @@ const HeroSection = () => {
                 </p>
                 <div className="mt-8 flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-4 justify-center lg:justify-start">
                   <Link
-                    to="/AiAssistant"
+                    to="/CreateCourse"
                     className="download-btn w-full sm:w-auto flex items-center justify-center px-8 py-3 border border-transparent text-base font-medium rounded-md text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 dark:from-indigo-500 dark:to-purple-500 md:py-4 md:text-lg md:px-10"
                   >
-                    <FaPlay className="mr-2" /> Start Learning
+                    <FaPlay className="mr-2" /> Create new course
                   </Link>
                   <a
                     href="#"

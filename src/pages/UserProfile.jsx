@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 
-const Profile = () => {
+const UserProfile = () => {
   const navigate = useNavigate();
 
   const [isEditing, setIsEditing] = useState(false);
@@ -18,7 +18,7 @@ const Profile = () => {
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        const token = localStorage.getItem("token");
+        const token = localStorage.getItem("authToken");
         if (!token) {
           navigate("/login");
           return;
@@ -36,7 +36,7 @@ const Profile = () => {
         });
       } catch (err) {
         if (err.response?.status === 401) {
-          localStorage.removeItem("token");
+          localStorage.removeItem("authToken");
           localStorage.removeItem("isLoggedIn");
           navigate("/login");
         } else {
@@ -56,7 +56,7 @@ const Profile = () => {
     // Khôi phục dữ liệu từ API
     const fetchUser = async () => {
       try {
-        const token = localStorage.getItem("token");
+        const token = localStorage.getItem("authToken");
         const response = await axios.get("https://assistant.baopanel.com/api/user", {
           headers: { Authorization: `Bearer ${token}` },
         });
@@ -75,7 +75,7 @@ const Profile = () => {
 
   const handleSave = async () => {
     try {
-      const token = localStorage.getItem("token");
+      const token = localStorage.getItem("authToken");
       await axios.patch(
         "https://assistant.baopanel.com/api/user",
         {
@@ -90,7 +90,7 @@ const Profile = () => {
       setError("");
     } catch (err) {
       if (err.response?.status === 401) {
-        localStorage.removeItem("token");
+        localStorage.removeItem("authToken");
         localStorage.removeItem("isLoggedIn");
         navigate("/login");
       } else {
@@ -100,7 +100,7 @@ const Profile = () => {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem("token");
+    localStorage.removeItem("authToken");
     localStorage.removeItem("isLoggedIn");
     navigate("/");
   };
@@ -249,4 +249,4 @@ const Profile = () => {
   );
 };
 
-export default Profile;
+export default UserProfile;

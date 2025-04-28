@@ -1,1117 +1,670 @@
-// import { useState, useEffect } from "react";
-// import { useNavigate } from "react-router-dom";
-// import { FaLightbulb, FaCheckCircle, FaRobot } from "react-icons/fa";
-// import AIModelSelector from "../components/AIModelSelector";
-// import { callOpenAI } from "../models/gptModel";
-// import { callPhi } from "../models/phiModel";
-// import { callJamba } from "../models/jambaModel";
-// import { callDeepSeek } from "../models/deepSeekModel";
-// import { callLlama } from "../models/llamaModel";
-// import { createOptimizedPrompt } from "../utils/promptUtils";
+import React, { useState, useEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
+import { toast } from "react-toastify";
+import { FaCheckCircle, FaPlus, FaCircle } from "react-icons/fa";
+import {
+  getProfiles,
+  getTasksByProfile,
+  getTasksByWeek,
+  getExerciseByTaskId,
+  getExercisesSummary,
+  submitExercise,
+  updateTaskStatus,
+  generateNext,
+  getExercisesByWeekId,
+} from "../utils/api";
+import WeekInfo from "../components/WeekInfo";
+import ExerciseItem from "../components/ExerciseItem";
 
-// const LearningPlanPage = () => {
-//   const [learningPlan, setLearningPlan] = useState(() => {
-//     const savedPlan = localStorage.getItem("learningPlanResponse");
-//     return savedPlan ? JSON.parse(savedPlan) : null;
-//   });
-//   const navigate = useNavigate();
-//   const [currentDay, setCurrentDay] = useState("Monday");
-//   const [completedTasks, setCompletedTasks] = useState(
-//     JSON.parse(localStorage.getItem("completedTasks")) || {}
-//   );
-//   const [showAnswers, setShowAnswers] = useState({});
-//   const [showFeedbackOptions, setShowFeedbackOptions] = useState(false);
-//   const [selectedModel, setSelectedModel] = useState("gpt-4o");
-//   const [isLoading, setIsLoading] = useState(false);
-//   const [error, setError] = useState(null);
-
-//   useEffect(() => {
-//     localStorage.setItem("completedTasks", JSON.stringify(completedTasks));
-//   }, [completedTasks]);
-
-//   useEffect(() => {
-//     const handleStorageChange = () => {
-//       const savedPlan = localStorage.getItem("learningPlanResponse");
-//       if (savedPlan) {
-//         try {
-//           setLearningPlan(JSON.parse(savedPlan));
-//         } catch (error) {
-//           console.error("Error parsing learningPlanResponse:", error);
-//         }
-//       }
-//     };
-//     window.addEventListener("storage", handleStorageChange);
-//     return () => window.removeEventListener("storage", handleStorageChange);
-//   }, []);
-
-//   if (!learningPlan) {
-//     return <div className="text-center py-8">No learning plan available.</div>;
-//   }
-
-//   const isAllTasksCompleted = () => {
-//     const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
-//     let allTasksCompleted = true;
-//     for (const day of days) {
-//       const tasks = learningPlan.weeklyPlan[day] || [];
-//       if (tasks.length === 0) continue;
-//       const dayCompleted = tasks.some((_, index) => completedTasks[`${day}-${index}`]);
-//       if (!dayCompleted) {
-//         allTasksCompleted = false;
-//         break;
-//       }
-//     }
-//     return allTasksCompleted;
-//   };
-
-//   const handleDayChange = (day) => {
-//     setCurrentDay(day);
-//   };
-
-//   const toggleTaskCompletion = (taskId, isChecked) => {
-//     setCompletedTasks((prev) => {
-//       if (isChecked) {
-//         const now = new Date();
-//         const timeString = now.toLocaleTimeString([], {
-//           hour: "2-digit",
-//           minute: "2-digit",
-//         });
-//         return { ...prev, [taskId]: { time: timeString } };
-//       } else {
-//         const newState = { ...prev };
-//         delete newState[taskId];
-//         return newState;
-//       }
-//     });
-//   };
-
-//   const toggleShowAnswer = (exerciseId, isChecked) => {
-//     setShowAnswers((prev) => ({
-//       ...prev,
-//       [exerciseId]: isChecked,
-//     }));
-//   };
-
-//   const handleNotSatisfied = async () => {
-//     setIsLoading(true);
-//     setError(null);
-//     const progress = calculateProgress();
-//     const prompt = createOptimizedPrompt(learningPlan, completedTasks, progress);
-//     try {
-//       let response;
-//       if (selectedModel === "gpt-4o") {
-//         response = await callOpenAI(prompt);
-//       } else if (selectedModel === "phi") {
-//         response = await callPhi(prompt);
-//       } else if (selectedModel === "jamba") {
-//         response = await callJamba(prompt);
-//       } else if (selectedModel === "deepseek") {
-//         response = await callDeepSeek(prompt);
-//       } else if (selectedModel === "llama") {
-//         response = await callLlama(prompt);
-//       }
-
-//       const cleanedResponse = response
-//         .replace(/```json\n/, '')
-//         .replace(/\n```/, '');
-//       console.log("New learningPlanResponse:", cleanedResponse);
-//       const parsedResponse = JSON.parse(cleanedResponse);
-//       if (!parsedResponse.user || !parsedResponse.weeklyPlan || !parsedResponse.notes) {
-//         throw new Error("Invalid learning plan structure");
-//       }
-//       localStorage.setItem("learningPlanResponse", cleanedResponse);
-//       setLearningPlan(parsedResponse);
-//       setCompletedTasks({});
-//       localStorage.setItem("completedTasks", JSON.stringify({}));
-//       setShowFeedbackOptions(false);
-//     } catch (error) {
-//       console.error("Error generating optimized plan:", error);
-//       setError("Failed to generate optimized plan. Please try again.");
-//     } finally {
-//       setIsLoading(false);
-//     }
-//   };
-
-//   const calculateProgress = () => {
-//     let totalTasks = 0;
-//     let completedCount = 0;
-//     let totalMinutes = 0;
-//     for (const day in learningPlan.weeklyPlan) {
-//       learningPlan.weeklyPlan[day].forEach((task, index) => {
-//         const taskId = `${day}-${index}`;
-//         totalTasks++;
-//         if (completedTasks[taskId]) {
-//           completedCount++;
-//         }
-//         if (!completedTasks[taskId] && task.duration !== "0 minutes") {
-//           const minutes = parseInt(task.duration.split(" ")[0]) || 0;
-//           totalMinutes += minutes;
-//         }
-//       });
-//     }
-//     const percentage = totalTasks ? Math.round((completedCount / totalTasks) * 100) : 0;
-//     return { completedCount, totalTasks, totalMinutes, percentage };
-//   };
-
-//   const getCompletedTasks = () => {
-//     const completedList = [];
-//     for (const taskId in completedTasks) {
-//       const [day, index] = taskId.split("-");
-//       const task = learningPlan.weeklyPlan[day]?.[parseInt(index)];
-//       if (task) {
-//         completedList.push({
-//           day,
-//           task: task.task,
-//           time: completedTasks[taskId].time,
-//           type: task.type,
-//           duration: task.duration,
-//         });
-//       }
-//     }
-//     completedList.sort((a, b) => {
-//       const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
-//       return days.indexOf(a.day) - days.indexOf(b.day);
-//     });
-//     return completedList;
-//   };
-
-//   const getTypeColor = (type) => {
-//     switch (type) {
-//       case "Reading/Writing":
-//         return "bg-blue-100 text-blue-800";
-//       case "Video":
-//         return "bg-green-100 text-green-800";
-//       case "Interactive":
-//         return "bg-purple-100 text-purple-800";
-//       default:
-//         return "bg-gray-100 text-gray-800";
-//     }
-//   };
-
-//   const getFocusColor = (focus) => {
-//     switch (focus) {
-//       case "Python Fundamentals":
-//         return "bg-indigo-100 text-indigo-800";
-//       case "Control Structures":
-//         return "bg-blue-100 text-blue-800";
-//       case "Data Structures":
-//         return "bg-green-100 text-green-800";
-//       case "Error Handling":
-//         return "bg-yellow-100 text-yellow-800";
-//       case "File Handling":
-//         return "bg-purple-100 text-purple-800";
-//       case "Review":
-//         return "bg-gray-100 text-gray-800";
-//       default:
-//         return "bg-gray-100 text-gray-800";
-//     }
-//   };
-
-//   const getResourceName = (resource) => {
-//     if (!resource || typeof resource !== "string") {
-//       return "None";
-//     }
-//     if (resource.startsWith("http")) {
-//       try {
-//         const url = new URL(resource);
-//         return url.hostname.replace("www.", "");
-//       } catch {
-//         return resource;
-//       }
-//     }
-//     return resource;
-//   };
-
-//   const { completedCount, totalTasks, totalMinutes, percentage } = calculateProgress();
-//   const completedList = getCompletedTasks();
-//   const showFeedbackButtons = isAllTasksCompleted();
-
-//   return (
-//     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 md:py-24 lg:py-20">
-//       {/* Header Section */}
-//       <header className="bg-white rounded-xl shadow-md p-6 mb-8">
-//         <div className="flex flex-col md:flex-row justify-between items-start md:items-center">
-//           <div>
-//             <h1 className="text-3xl font-bold text-gray-800">
-//               Welcome, <span className="text-blue-600">{learningPlan.user?.name || "User"}</span>
-//             </h1>
-//             <p className="text-gray-600 mt-2">{learningPlan.user?.summary?.split(",")[0] || "No summary"}</p>
-//             <div className="flex flex-wrap gap-2 mt-3">
-//               {Array.isArray(learningPlan.user?.interests) ? (
-//                 learningPlan.user.interests.map((interest, index) => (
-//                   <span
-//                     key={index}
-//                     className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm"
-//                   >
-//                     {interest}
-//                   </span>
-//                 ))
-//               ) : (
-//                 <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm">
-//                   No interests
-//                 </span>
-//               )}
-//             </div>
-//           </div>
-//           <div className="mt-4 md:mt-0 bg-gray-100 p-4 rounded-lg">
-//             <h3 className="font-semibold text-gray-700">Current Focus</h3>
-//             <p className="text-blue-600 font-medium">
-//               {learningPlan.weeklyPlan.Monday[0]?.focus || "Not specified"}
-//             </p>
-//             <p className="text-sm text-gray-600 mt-1">
-//               Goal: {learningPlan.user?.summary?.match(/focused on (.*?)(?:\.|$)/)?.[1] || "Not specified"}
-//             </p>
-//           </div>
-//         </div>
-//         <div className="mt-4 flex justify-end gap-4">
-//           <button
-//             onClick={() => navigate("/AiAssistant")}
-//             className="bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium py-2 px-6 rounded-lg transition"
-//           >
-//             Back to Dashboard
-//           </button>
-//         </div>
-//       </header>
-
-//       {/* Progress Summary */}
-//       <div className="bg-white rounded-xl shadow-md p-6 mb-8">
-//         <h2 className="text-xl font-semibold text-gray-800 mb-4">Weekly Progress</h2>
-//         <div className="flex items-center mb-2">
-//           <div className="w-full bg-gray-200 rounded-full h-4">
-//             <div
-//               className="progress-bar bg-blue-600 h-4 rounded-full transition-all duration-500"
-//               style={{ width: `${percentage}%` }}
-//             ></div>
-//           </div>
-//           <span className="ml-4 text-gray-700 font-medium">{percentage}%</span>
-//         </div>
-//         <div className="flex justify-between text-sm text-gray-600">
-//           <span>
-//             Completed: <span>{completedCount}</span>/<span>{totalTasks}</span> tasks
-//           </span>
-//           <span>Total time: {totalMinutes} minutes</span>
-//         </div>
-//       </div>
-
-//       {/* Notes Section */}
-//       <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-8 rounded">
-//         <div className="flex">
-//           <div className="flex-shrink-0">
-//             <FaLightbulb className="text-yellow-500 mt-1" />
-//           </div>
-//           <div className="ml-3">
-//             <h3 className="text-sm font-medium text-yellow-800">Learning Plan Notes</h3>
-//             <div className="mt-2 text-sm text-yellow-700">
-//               {learningPlan.notes?.split(". ").map((note, index) => (
-//                 <p key={index}>• {note}</p>
-//               )) || <p>• No notes available</p>}
-//             </div>
-//           </div>
-//         </div>
-//       </div>
-
-//       {/* Weekly Plan Navigation */}
-//       <div className="flex overflow-x-auto mb-6 bg-white rounded-lg shadow-sm">
-//         {["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"].map((day) => (
-//           <button
-//             key={day}
-//             className={`px-6 py-3 text-gray-600 font-medium ${
-//               currentDay === day ? "border-b-3 border-blue-500 text-blue-600 font-semibold" : ""
-//             }`}
-//             onClick={() => handleDayChange(day)}
-//           >
-//             {day}
-//           </button>
-//         ))}
-//       </div>
-
-//       {/* Tasks Display */}
-//       <div className="grid gap-4 mb-8">
-//         {learningPlan.weeklyPlan[currentDay]?.map((task, index) => {
-//           const taskId = `${currentDay}-${index}`;
-//           const isCompleted = !!completedTasks[taskId];
-//           return (
-//             <div
-//               key={taskId}
-//               className={`task-card bg-white rounded-lg shadow p-5 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg ${
-//                 isCompleted ? "opacity-70 bg-green-50" : ""
-//               }`}
-//             >
-//               <div className="flex items-start justify-between">
-//                 <div className="flex items-start">
-//                   <input
-//                     type="checkbox"
-//                     id={taskId}
-//                     className="mt-1"
-//                     checked={isCompleted}
-//                     onChange={(e) => toggleTaskCompletion(taskId, e.target.checked)}
-//                   />
-//                   <div className="ml-3">
-//                     <h3 className={`font-medium text-gray-800 ${isCompleted ? "line-through" : ""}`}>
-//                       {task.task}
-//                     </h3>
-//                     <div className="flex flex-wrap gap-2 mt-2">
-//                       <span className={`px-2 py-1 rounded-full text-xs ${getTypeColor(task.type)}`}>
-//                         {task.type}
-//                       </span>
-//                       <span className={`px-2 py-1 rounded-full text-xs ${getFocusColor(task.focus)}`}>
-//                         {task.focus}
-//                       </span>
-//                       <span className="px-2 py-1 rounded-full text-xs bg-gray-100 text-gray-800">
-//                         {task.duration}
-//                       </span>
-//                     </div>
-//                     {task.resource !== "None" && (
-//                       <div className="mt-3 text-sm">
-//                         <span className="text-gray-600">Resource:</span>
-//                         <a
-//                           href={task.resource}
-//                           target="_blank"
-//                           rel="noopener noreferrer"
-//                           className="text-blue-600 ml-1 hover:underline"
-//                         >
-//                           {getResourceName(task.resource)}
-//                         </a>
-//                       </div>
-//                     )}
-//                     {task.theory && (
-//                       <div className="mt-3 text-sm bg-blue-50 p-3 rounded">
-//                         <div className="font-medium text-blue-800">Theory:</div>
-//                         <div className="text-blue-700 mt-1">{task.theory}</div>
-//                       </div>
-//                     )}
-//                   </div>
-//                 </div>
-//                 {isCompleted && (
-//                   <div className="text-green-500 flex items-center">
-//                     <FaCheckCircle />
-//                     <span className="ml-1 text-xs">Completed at {completedTasks[taskId].time}</span>
-//                   </div>
-//                 )}
-//               </div>
-//               {task.exercises?.length > 0 && (
-//                 <div className="mt-4 border-t pt-4">
-//                   <h4 className="font-medium text-gray-700 mb-2">Exercises:</h4>
-//                   <div className="space-y-4">
-//                     {task.exercises.map((exercise, exIndex) => {
-//                       const exerciseId = `${taskId}-${exIndex}`;
-//                       const isAnswerShown = !!showAnswers[exerciseId];
-//                       return (
-//                         <div key={exerciseId} className="bg-gray-50 p-3 rounded-lg">
-//                           <div className="font-medium text-gray-800">{exercise.exercise}</div>
-//                           <div className="text-sm text-gray-600 mt-1">{exercise.instructions}</div>
-//                           <div className="flex items-center mt-2">
-//                             <input
-//                               type="checkbox"
-//                               id={`show-${exerciseId}`}
-//                               className="mr-2"
-//                               checked={isAnswerShown}
-//                               onChange={(e) => toggleShowAnswer(exerciseId, e.target.checked)}
-//                             />
-//                             <label htmlFor={`show-${exerciseId}`} className="text-sm">
-//                               Show Answer
-//                             </label>
-//                           </div>
-//                           <div
-//                             className={`exercise-answer mt-2 overflow-hidden transition-all duration-300 ${
-//                               isAnswerShown ? "max-h-[500px]" : "max-h-0"
-//                             }`}
-//                           >
-//                             <div className="code-block bg-gray-100 rounded p-3 font-mono text-sm border-l-3 border-blue-500">
-//                               {exercise.answer}
-//                             </div>
-//                           </div>
-//                         </div>
-//                       );
-//                     })}
-//                   </div>
-//                 </div>
-//               )}
-//             </div>
-//           );
-//         })}
-//       </div>
-
-//       {/* Completed Tasks Timeline */}
-//       <div className="bg-white rounded-xl shadow-md p-6">
-//         <h2 className="text-xl font-semibold text-gray-800 mb-4">Completed Tasks Timeline</h2>
-//         <div className="border-l-2 border-gray-200 pl-4 space-y-4">
-//           {completedList.length === 0 ? (
-//             <p className="text-gray-500 italic">No completed tasks yet</p>
-//           ) : (
-//             completedList.map((item, index) => (
-//               <div key={index} className="relative pb-4">
-//                 <div className="absolute w-3 h-3 bg-blue-500 rounded-full mt-1 left-[-1.4rem] border border-white"></div>
-//                 <div className="flex justify-between items-start">
-//                   <div>
-//                     <h3 className="font-medium text-gray-800">{item.task}</h3>
-//                     <div className="flex items-center mt-1">
-//                       <span className={`text-xs px-2 py-1 rounded-full ${getTypeColor(item.type)} mr-2`}>
-//                         {item.type}
-//                       </span>
-//                       <span className="text-xs text-gray-500">{item.duration}</span>
-//                     </div>
-//                   </div>
-//                   <div className="text-sm text-gray-500">
-//                     <span className="font-medium">{item.day}</span>
-//                     <span className="mx-1">•</span>
-//                     <span>{item.time}</span>
-//                   </div>
-//                 </div>
-//               </div>
-//             ))
-//           )}
-//         </div>
-//       </div>
-
-//       {/* Feedback Section */}
-//       {showFeedbackButtons && (
-//         <div className="mt-8 bg-white rounded-xl shadow-md p-6">
-//           <h2 className="text-xl font-semibold text-gray-800 mb-4">Feedback</h2>
-//           <div className="flex flex-col items-center">
-//             <div className="flex gap-4">
-//               <button
-//                 onClick={() => navigate("/AiAssistant")}
-//                 className="text-blue-600 hover:underline font-medium"
-//               >
-//                 Satisfied
-//               </button>
-//               <button
-//                 onClick={() => setShowFeedbackOptions(!showFeedbackOptions)}
-//                 className="bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium py-2 px-6 rounded-lg transition"
-//               >
-//                 Not Satisfied?
-//               </button>
-//             </div>
-//             {showFeedbackOptions && (
-//               <div className="mt-4 flex flex-col items-center gap-4">
-//                 <AIModelSelector selectedModel={selectedModel} setSelectedModel={setSelectedModel} />
-//                 <button
-//                   onClick={handleNotSatisfied}
-//                   className="bg-red-500 hover:bg-red-600 text-white font-medium py-2 px-6 rounded-lg transition"
-//                   disabled={isLoading}
-//                 >
-//                   <FaRobot className="inline mr-2" /> {isLoading ? "Generating..." : "ReGenerate"}
-//                 </button>
-//                 {error && <p className="text-red-600 text-sm">{error}</p>}
-//               </div>
-//             )}
-//             {isLoading && (
-//               <div className="mt-4 animate-pulse flex space-x-4">
-//                 <div className="flex-1 space-y-4 py-1">
-//                   <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-//                   <div className="h-4 bg-gray-200 rounded"></div>
-//                   <div className="h-4 bg-gray-200 rounded w-5/6"></div>
-//                 </div>
-//               </div>
-//             )}
-//           </div>
-//         </div>
-//       )}
-//     </div>
-//   );
-// };
-
-// export default LearningPlanPage;
-
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { FaLightbulb, FaCheckCircle, FaHourglassStart } from "react-icons/fa";
-
-const LearningPlanPage = () => {
-  const [learningPlan, setLearningPlan] = useState(() => {
-    const savedPlan = localStorage.getItem("learningPlanResponse");
-    return savedPlan ? JSON.parse(savedPlan) : null;
-  });
+const LearningPlan = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const { profileId, courseName } = location.state || {};
+
+  const [course, setCourse] = useState(null);
+  const [weekData, setWeekData] = useState(null);
   const [currentDay, setCurrentDay] = useState("Monday");
-  const [completedTasks, setCompletedTasks] = useState(
-    JSON.parse(localStorage.getItem("completedTasks")) || {}
-  );
-  const [startedTasks, setStartedTasks] = useState(
-    JSON.parse(localStorage.getItem("startedTasks")) || {}
-  );
-  const [showAnswers, setShowAnswers] = useState({});
-  const [activeTimers, setActiveTimers] = useState({});
+  const [completedTasks, setCompletedTasks] = useState({});
+  const [exercises, setExercises] = useState({});
+  const [userAnswers, setUserAnswers] = useState({});
+  const [exerciseResults, setExerciseResults] = useState({});
+  const [timers, setTimers] = useState({});
+  const [loading, setLoading] = useState(true);
+  const [weekSummary, setWeekSummary] = useState(null);
+  const [finalExercise, setFinalExercise] = useState(null);
 
-  // Save completedTasks and startedTasks to localStorage
+  // Lấy thông tin khóa học và tuần hiện tại khi component mount
   useEffect(() => {
-    localStorage.setItem("completedTasks", JSON.stringify(completedTasks));
-    localStorage.setItem("startedTasks", JSON.stringify(startedTasks));
-  }, [completedTasks, startedTasks]);
+    let isMounted = true;
 
-  // Update timers every second
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setActiveTimers((prev) => {
-        const updatedTimers = { ...prev };
-        for (const taskId in startedTasks) {
-          if (!completedTasks[taskId] && startedTasks[taskId]) {
-            const startTime = new Date(startedTasks[taskId].time);
-            const elapsedMs = new Date() - startTime;
-            updatedTimers[taskId] = elapsedMs;
-          }
-        }
-        return updatedTimers;
-      });
-    }, 1000);
-    return () => clearInterval(interval);
-  }, [startedTasks, completedTasks]);
+    const fetchInitialData = async () => {
+      try {
+        const profileResponse = await getProfiles();
+        const profile = profileResponse.data.find((p) => p.id === profileId);
+        if (!profile) throw new Error("Profile not found");
+        if (isMounted) setCourse(profile);
 
-  // Sync learningPlan with localStorage changes
-  useEffect(() => {
-    const handleStorageChange = () => {
-      const savedPlan = localStorage.getItem("learningPlanResponse");
-      if (savedPlan) {
+        const storedWeekId = localStorage.getItem(`weekId_${profileId}`);
+        let weekResponse;
+
         try {
-          setLearningPlan(JSON.parse(savedPlan));
+          if (storedWeekId) {
+            weekResponse = await getTasksByWeek(storedWeekId);
+          } else {
+            weekResponse = await getTasksByProfile(profileId);
+            const initialWeekId = weekResponse.data.week.id;
+            localStorage.setItem(`weekId_${profileId}`, initialWeekId);
+          }
         } catch (error) {
-          console.error("Error parsing learningPlanResponse:", error);
+          console.error(`Error fetching tasks for week ${storedWeekId}:`, error.message);
+          weekResponse = await getTasksByProfile(profileId);
+          const fallbackWeekId = weekResponse.data.week.id;
+          localStorage.setItem(`weekId_${profileId}`, fallbackWeekId);
         }
+
+        if (isMounted) {
+          setWeekData(weekResponse.data);
+          toast.success("Tasks fetched successfully", {
+            position: "top-right",
+            autoClose: 3000,
+            hideProgressBar: false,
+            closeOnClick: true,
+            pauseOnHover: true,
+            draggable: true,
+            className: "bg-blue-600 text-white",
+          });
+        }
+      } catch (error) {
+        if (isMounted) {
+          toast.error(error.message, {
+            position: "top-right",
+            autoClose: 3000,
+            hideProgressBar: false,
+            closeOnClick: true,
+            pauseOnHover: true,
+            draggable: true,
+            className: "bg-red-600 text-white",
+          });
+        }
+      } finally {
+        if (isMounted) setLoading(false);
       }
     };
-    window.addEventListener("storage", handleStorageChange);
-    return () => window.removeEventListener("storage", handleStorageChange);
-  }, []);
 
-  if (!learningPlan) {
-    return <div className="text-center py-8">No learning plan available.</div>;
-  }
+    if (profileId) fetchInitialData();
 
-  const handleDayChange = (day) => {
-    setCurrentDay(day);
-  };
+    return () => {
+      isMounted = false;
+    };
+  }, [profileId]);
 
-  const toggleTaskStart = (taskId, isStarted) => {
-    const now = new Date();
-    setStartedTasks((prev) => {
-      if (isStarted) {
-        return { ...prev, [taskId]: { time: now.toISOString() } };
-      } else {
-        const newState = { ...prev };
-        delete newState[taskId];
-        return newState;
-      }
-    });
-    if (!isStarted) {
-      setCompletedTasks((prev) => {
-        const newState = { ...prev };
-        delete newState[taskId];
-        return newState;
-      });
-    }
-  };
+  // Tự động tải bài tập và kết quả cho task hoàn thành, đồng thời lấy summary nếu tuần hoàn thành
+  useEffect(() => {
+    let isMounted = true;
 
-  const toggleTaskCompletion = (taskId, isCompleted) => {
-    const now = new Date();
-    const startTime = startedTasks[taskId] ? new Date(startedTasks[taskId].time) : now;
-    const durationMs = now - startTime;
-    const durationMinutes = Math.floor(durationMs / 60000);
+    const fetchCompletedTasksData = async () => {
+      if (!weekData?.tasks_by_day || !weekData.week?.id) return;
 
-    setCompletedTasks((prev) => {
-      if (isCompleted) {
-        return {
-          ...prev,
-          [taskId]: {
-            time: now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-            startTime: startTime.toISOString(),
-            endTime: now.toISOString(),
-            durationMinutes,
-          },
-        };
-      } else {
-        const newState = { ...prev };
-        delete newState[taskId];
-        return newState;
-      }
-    });
-  };
-
-  const toggleShowAnswer = (exerciseId, isChecked) => {
-    setShowAnswers((prev) => ({
-      ...prev,
-      [exerciseId]: isChecked,
-    }));
-    localStorage.setItem(`answerShown-${exerciseId}`, isChecked);
-  };
-
-  const calculateProgress = () => {
-    let totalTasks = 0;
-    let completedCount = 0;
-    let totalMinutes = 0;
-
-    for (const day in learningPlan.weeklyPlan) {
-      learningPlan.weeklyPlan[day].forEach((task, index) => {
-        const taskId = `${day}-${index}`;
-        totalTasks++;
-        if (completedTasks[taskId]) {
-          completedCount++;
+      try {
+        const summaryResponse = await getExercisesSummary(weekData.week.id);
+        const resultsData = summaryResponse.data.results || [];
+        const resultsMap = {};
+        resultsData.forEach((result) => {
+          resultsMap[result.exercise_id] = result;
+        });
+        if (isMounted) {
+          setExerciseResults((prev) => ({ ...prev, ...resultsMap }));
         }
-        if (!completedTasks[taskId] && task.duration !== "0 minutes") {
-          const minutes = parseInt(task.duration.split(" ")[0]) || 0;
-          totalMinutes += minutes;
-        }
-      });
-    }
-    const percentage = totalTasks ? Math.round((completedCount / totalTasks) * 100) : 0;
-    return { completedCount, totalTasks, totalMinutes, percentage };
-  };
 
-  const getCompletedTasks = () => {
-    const completedList = [];
-    for (const taskId in completedTasks) {
-      const [day, index] = taskId.split("-");
-      const task = learningPlan.weeklyPlan[day]?.[parseInt(index)];
-      if (task) {
-        completedList.push({
-          day,
-          task: task.task,
-          time: completedTasks[taskId].time,
-          startTime: completedTasks[taskId].startTime,
-          endTime: completedTasks[taskId].endTime,
-          durationMinutes: completedTasks[taskId].durationMinutes,
-          type: task.type,
-          plannedDuration: task.duration,
-          focus: task.focus,
+        const completedTasks = [];
+        const allTasks = [];
+        Object.values(weekData.tasks_by_day).forEach((tasks) => {
+          tasks.forEach((task) => {
+            allTasks.push(task);
+            if (task.is_done) completedTasks.push(task);
+          });
+        });
+
+        for (const task of completedTasks) {
+          try {
+            const exerciseResponse = await getExerciseByTaskId(task.id);
+            const exerciseData = Array.isArray(exerciseResponse.data)
+              ? exerciseResponse.data
+              : exerciseResponse.data.data || [];
+            if (isMounted) {
+              setExercises((prev) => ({ ...prev, [task.id]: exerciseData }));
+            }
+          } catch (error) {
+            console.error(`Error fetching exercises for task ${task.id}:`, error.message);
+          }
+        }
+
+        const allTasksCompleted = allTasks.every((task) => task.is_done);
+        if (allTasksCompleted) {
+          try {
+            const summaryResponse = await getExercisesSummary(weekData.week.id);
+            if (summaryResponse.status === 200) {
+              if (isMounted) setWeekSummary(summaryResponse.data);
+            }
+          } catch (error) {
+            console.error("Error fetching week summary:", error.message);
+          }
+        }
+      } catch (error) {
+        console.error(`Error fetching exercises summary:`, error.message);
+      }
+    };
+
+    fetchCompletedTasksData();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [weekData]);
+
+  // Lấy bài tập cuối tuần khi nhấn vào tab Exam
+  const fetchFinalExercise = async () => {
+    try {
+      const finalExerciseResponse = await getExercisesByWeekId(weekData.week.id);
+      const finalExerciseData = finalExerciseResponse.data && finalExerciseResponse.data.length > 0 ? finalExerciseResponse.data[0] : null;
+      setFinalExercise(finalExerciseData);
+      if (finalExerciseData) {
+        setTimers((prev) => ({ ...prev, "final_exercise": { start: new Date() } }));
+        toast.info("Weekly Final Exercise is now available!", {
+          position: "top-right",
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+          className: "bg-yellow-600 text-white",
+        });
+      } else {
+        toast.error("No final exercise available for this week.", {
+          position: "top-right",
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+          className: "bg-red-600 text-white",
         });
       }
+    } catch (error) {
+      console.error("Error fetching final exercise:", error.message);
+      toast.error("Failed to load Weekly Final Exercise.", {
+        position: "top-right",
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        className: "bg-red-600 text-white",
+      });
     }
-    completedList.sort((a, b) => {
-      const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
-      return days.indexOf(a.day) - days.indexOf(b.day);
+  };
+
+  // Lấy bài tập theo task (cho task chưa hoàn thành)
+  const fetchExercises = async (taskId) => {
+    try {
+      const response = await getExerciseByTaskId(taskId);
+      const exerciseData = Array.isArray(response.data) ? response.data : response.data.data || [];
+      setExercises((prev) => ({ ...prev, [taskId]: exerciseData }));
+      setTimers((prev) => ({ ...prev, [taskId]: { start: new Date() } }));
+      toast.success("Exercises loaded successfully", {
+        position: "top-right",
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        className: "bg-blue-600 text-white",
+      });
+    } catch (error) {
+      toast.error(error.message, {
+        position: "top-right",
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        className: "bg-red-600 text-white",
+      });
+    }
+  };
+
+  // Submit bài tập
+  const handleSubmitExercise = async (taskId, exerciseId, answer) => {
+    try {
+      const response = await submitExercise({ id: exerciseId, user_answer: answer });
+      setExerciseResults((prev) => ({
+        ...prev,
+        [exerciseId]: response.data,
+      }));
+      setTimers((prev) => ({
+        ...prev,
+        [taskId]: { ...prev[taskId], end: new Date() },
+      }));
+      toast.success(response.message, {
+        position: "top-right",
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        className: "bg-blue-600 text-white",
+      });
+      // Cập nhật trạng thái submit của finalExercise nếu là bài tập cuối tuần
+      if (taskId === "final_exercise" && finalExercise) {
+        setFinalExercise((prev) => ({ ...prev, is_submitted: 1 }));
+      }
+    } catch (error) {
+      toast.error(error.message, {
+        position: "top-right",
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        className: "bg-red-600 text-white",
+      });
+    }
+  };
+
+  // Đánh dấu task hoàn thành
+  const handleMarkTaskCompleted = async (taskId) => {
+    try {
+      await updateTaskStatus(taskId, true);
+      setCompletedTasks((prev) => ({ ...prev, [taskId]: true }));
+      setWeekData((prev) => ({
+        ...prev,
+        tasks_by_day: {
+          ...prev.tasks_by_day,
+          [currentDay]: prev.tasks_by_day[currentDay].map((task) =>
+            task.id === taskId ? { ...task, is_done: true } : task
+          ),
+        },
+      }));
+      toast.success("Task marked as completed", {
+        position: "top-right",
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        className: "bg-green-600 text-white",
+      });
+    } catch (error) {
+      const errorMessage = error.response?.data?.message || error.message;
+      console.error(`Error marking task ${taskId} as completed:`, errorMessage);
+      toast.error(errorMessage, {
+        position: "top-right",
+        autoClose: 5000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        className: "bg-red-600 text-white",
+      });
+    }
+  };
+
+  // Kiểm tra điều kiện để bật nút Generate for Next Week
+  const canGenerateNextWeek = () => {
+    if (!weekData?.tasks_by_day) return false;
+    const allTasksDone = Object.values(weekData.tasks_by_day).every((tasks) =>
+      tasks.every((task) => task.is_done)
+    );
+    const isFinalExerciseSubmitted = finalExercise ? finalExercise.is_submitted === 1 : false;
+    return allTasksDone && isFinalExerciseSubmitted;
+  };
+
+  // Kiểm tra điều kiện để hiển thị tab Exam
+  const canShowExamTab = () => {
+    if (!weekData?.tasks_by_day) return false;
+    return Object.values(weekData.tasks_by_day).every((tasks) =>
+      tasks.every((task) => task.is_done)
+    );
+  };
+
+  // Tạo task cho tuần tiếp theo
+  const handleGenerateNextWeek = async () => {
+    try {
+      const response = await generateNext({ profile_id: profileId });
+      const newWeek = response.data.week;
+      const feedback = response.data.feedback;
+      localStorage.setItem(`weekId_${profileId}`, newWeek.id);
+      const weekResponse = await getTasksByWeek(newWeek.id);
+      setWeekData({ ...weekResponse.data, feedback });
+      setWeekSummary(null);
+      setExercises({});
+      setExerciseResults({});
+      setUserAnswers({});
+      setTimers({});
+      setFinalExercise(null);
+      setCurrentDay("Monday");
+      toast.success("Tasks generated for next week", {
+        position: "top-right",
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        className: "bg-blue-600 text-white",
+      });
+    } catch (error) {
+      toast.error(error.message, {
+        position: "top-right",
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        className: "bg-red-600 text-white",
+      });
+    }
+  };
+
+  // Tính tiến độ
+  const calculateProgress = () => {
+    if (!weekData?.tasks_by_day) return { completedCount: 0, totalTasks: 0, percentage: 0 };
+    let totalTasks = 0;
+    let completedCount = 0;
+    Object.values(weekData.tasks_by_day).forEach((tasks) => {
+      totalTasks += tasks.length;
+      completedCount += tasks.filter((task) => task.is_done).length;
     });
-    return completedList;
+    const percentage = totalTasks ? Math.round((completedCount / totalTasks) * 100) : 0;
+    return { completedCount, totalTasks, percentage };
   };
 
-  const getTypeColor = (type) => {
-    switch (type) {
-      case "Reading/Writing":
-      case "Reading & Theory":
-        return "bg-blue-100 text-blue-800";
-      case "Video":
-      case "Interactive Exercises":
-        return "bg-green-100 text-green-800";
-      case "Interactive":
-      case "Hands-On Practice":
-        return "bg-purple-100 text-purple-800";
-      case "Review":
-      case "Review & Practice":
-        return "bg-yellow-100 text-yellow-800";
-      default:
-        return "bg-gray-100 text-gray-800";
-    }
+  // Format ngày
+  const formatDate = (dateString) => {
+    if (!dateString) return "N/A";
+    return new Date(dateString).toLocaleDateString("en-GB", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    });
   };
 
-  const getFocusColor = (focus) => {
-    switch (focus) {
-      case "Python Fundamentals":
-      case "HTML":
-        return "bg-indigo-100 text-indigo-800";
-      case "Control Structures":
-      case "CSS":
-        return "bg-blue-100 text-blue-800";
-      case "Data Structures":
-      case "Both":
-        return "bg-green-100 text-green-800";
-      case "Error Handling":
-        return "bg-yellow-100 text-yellow-800";
-      case "File Handling":
-        return "bg-purple-100 text-purple-800";
-      case "Review":
-        return "bg-gray-100 text-gray-800";
-      default:
-        return "bg-gray-100 text-gray-800";
-    }
-  };
+  const { completedCount, totalTasks, percentage } = calculateProgress();
 
-  const getResourceName = (resource) => {
-    if (!resource || typeof resource !== "string") {
-      return "None";
-    }
-    if (resource.startsWith("http")) {
-      try {
-        const url = new URL(resource);
-        return url.hostname.replace("www.", "");
-      } catch {
-        return resource;
-      }
-    }
-    return resource;
-  };
+  if (loading) {
+    return <div className="text-center py-8">Loading...</div>;
+  }
 
-  const formatTimer = (elapsedMs) => {
-    const seconds = Math.floor(elapsedMs / 1000);
-    const hours = Math.floor(seconds / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-    const remainingSeconds = seconds % 60;
-    return `${hours.toString().padStart(2, "0")}:${minutes
-      .toString()
-      .padStart(2, "0")}:${remainingSeconds.toString().padStart(2, "0")}`;
-  };
-
-  const calculateTimelineSummary = () => {
-    let totalPlannedMinutes = 0;
-    let totalActualMinutes = 0;
-    for (const taskId in completedTasks) {
-      const [day, index] = taskId.split("-");
-      const task = learningPlan.weeklyPlan[day]?.[parseInt(index)];
-      if (task && completedTasks[taskId].durationMinutes) {
-        totalActualMinutes += completedTasks[taskId].durationMinutes;
-        const plannedMinutes = parseInt(task.duration.split(" ")[0]) || 0;
-        totalPlannedMinutes += plannedMinutes;
-      }
-    }
-    return { totalPlannedMinutes, totalActualMinutes };
-  };
-
-  const { completedCount, totalTasks, totalMinutes, percentage } = calculateProgress();
-  const completedList = getCompletedTasks();
-  const { totalPlannedMinutes, totalActualMinutes } = calculateTimelineSummary();
+  if (!course || !profileId) {
+    return <div className="text-center py-8">No course selected.</div>;
+  }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 md:py-24 lg:py-20">
-      {/* Header Section */}
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 font-poppins">
+      {/* Course Info Section */}
       <header className="bg-white rounded-xl shadow-md p-6 mb-8">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-800">
-              Chào mừng, <span className="text-blue-600">{learningPlan.user?.name || "Người dùng"}</span>
-            </h1>
-            <p className="text-gray-600 mt-2">{learningPlan.user?.summary?.split(",")[0] || "Không có tóm tắt"}</p>
-            <div className="flex flex-wrap gap-2 mt-3">
-              {Array.isArray(learningPlan.user?.interests) ? (
-                learningPlan.user.interests.map((interest, index) => (
-                  <span
-                    key={index}
-                    className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm"
-                  >
-                    {interest}
-                  </span>
-                ))
-              ) : (
-                <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm">
-                  Không có sở thích
-                </span>
-              )}
-            </div>
-          </div>
-          <div className="mt-4 md:mt-0 bg-gray-100 p-4 rounded-lg">
-            <h3 className="font-semibold text-gray-700">Trọng tâm hiện tại</h3>
-            <p className="text-blue-600 font-medium">
-              {learningPlan.weeklyPlan.Monday[0]?.focus || "Không xác định"}
-            </p>
-            <p className="text-sm text-gray-600 mt-1">
-              Mục tiêu: {learningPlan.user?.summary?.match(/focused on (.*?)(?:\.|$)/)?.[1] || "Không xác định"}
-            </p>
-          </div>
+        <h1 className="text-3xl font-bold text-gray-800">{course.course_name}</h1>
+        <p className="text-gray-600 mt-2">{course.goals}</p>
+        <div className="flex flex-wrap gap-2 mt-3">
+          {course.secondary_skills.map((skill, index) => (
+            <span
+              key={index}
+              className="px-2 py-1 bg-blue-100 text-blue-600 text-xs rounded-full"
+            >
+              {skill}
+            </span>
+          ))}
         </div>
-        <div className="mt-4 flex justify-end">
+        <div className="mt-4 flex items-center gap-4">
+          <span className="text-gray-700 font-medium">
+            Current Week: {weekData?.week?.id || "N/A"} (Start: {formatDate(weekData?.week?.start_date)})
+          </span>
           <button
-            onClick={() => navigate("/AiAssistant")}
-            className="bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium py-2 px-6 rounded-lg transition"
+            onClick={handleGenerateNextWeek}
+            disabled={!canGenerateNextWeek()}
+            className={`px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors ${
+              canGenerateNextWeek()
+                ? "bg-blue-600 hover:bg-blue-700 text-white"
+                : "bg-gray-300 text-gray-500 cursor-not-allowed"
+            }`}
           >
-            Quay lại Bảng điều khiển
+            <FaPlus className="text-sm" />
+            <span>Generate for Next Week</span>
           </button>
         </div>
       </header>
 
+      {/* Week Info Section */}
+      <WeekInfo weekData={weekData} />
+
       {/* Progress Summary */}
       <div className="bg-white rounded-xl shadow-md p-6 mb-8">
-        <h2 className="text-xl font-semibold text-gray-800 mb-4">Tiến độ hàng tuần</h2>
+        <h2 className="text-xl font-semibold text-gray-800 mb-4">Weekly Progress</h2>
         <div className="flex items-center mb-2">
           <div className="w-full bg-gray-200 rounded-full h-4">
             <div
-              className="progress-bar bg-blue-600 h-4 rounded-full transition-all duration-500"
+              className="bg-blue-600 h-4 rounded-full transition-all duration-500"
               style={{ width: `${percentage}%` }}
             ></div>
           </div>
           <span className="ml-4 text-gray-700 font-medium">{percentage}%</span>
         </div>
         <div className="flex justify-between text-sm text-gray-600">
-          <span>
-            Đã hoàn thành: <span>{completedCount}</span>/<span>{totalTasks}</span> nhiệm vụ
-          </span>
-          <span>Tổng thời gian: {totalMinutes} phút</span>
-        </div>
-      </div>
-
-      {/* Notes Section */}
-      <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-8 rounded">
-        <div className="flex">
-          <div className="flex-shrink-0">
-            <FaLightbulb className="text-yellow-500 mt-1" />
-          </div>
-          <div className="ml-3">
-            <h3 className="text-sm font-medium text-yellow-800">Ghi chú kế hoạch học tập</h3>
-            <div className="mt-2 text-sm text-yellow-700">
-              {learningPlan.notes?.split(". ").map((note, index) => (
-                <p key={index}>• {note}</p>
-              )) || <p>• Không có ghi chú</p>}
-            </div>
-          </div>
+          <span>Completed: {completedCount}/{totalTasks} tasks</span>
         </div>
       </div>
 
       {/* Weekly Plan Navigation */}
       <div className="flex overflow-x-auto mb-6 bg-white rounded-lg shadow-sm">
-        {["Thứ Hai", "Thứ Ba", "Thứ Tư", "Thứ Năm", "Thứ Sáu", "Thứ Bảy", "Chủ Nhật"].map((day, index) => (
+        {["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"].map(
+          (day) => (
+            <button
+              key={day}
+              className={`px-6 py-3 text-gray-600 font-medium ${
+                currentDay === day ? "border-b-3 border-blue-500 text-blue-600 font-semibold" : ""
+              }`}
+              onClick={() => setCurrentDay(day)}
+            >
+              {day}
+            </button>
+          )
+        )}
+        {canShowExamTab() && (
           <button
-            key={day}
             className={`px-6 py-3 text-gray-600 font-medium ${
-              currentDay === ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"][index]
-                ? "border-b-3 border-blue-500 text-blue-600 font-semibold"
-                : ""
+              currentDay === "Exam" ? "border-b-3 border-blue-500 text-blue-600 font-semibold" : ""
             }`}
-            onClick={() =>
-              handleDayChange(["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"][index])
-            }
+            onClick={() => {
+              setCurrentDay("Exam");
+              if (!finalExercise) {
+                fetchFinalExercise();
+              }
+            }}
           >
-            {day}
+            Exam
           </button>
-        ))}
+        )}
       </div>
 
-      {/* Tasks Display */}
+      {/* Tasks Display hoặc Final Exercise */}
       <div className="grid gap-4 mb-8">
-        {learningPlan.weeklyPlan[currentDay]?.map((task, index) => {
-          const taskId = `${currentDay}-${index}`;
-          const isStarted = !!startedTasks[taskId];
-          const isCompleted = !!completedTasks[taskId];
-          return (
-            <div
-              key={taskId}
-              className={`task-card bg-white rounded-lg shadow p-5 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg ${
-                isCompleted ? "opacity-70 bg-green-50" : isStarted ? "border-l-4 border-blue-500" : ""
-              }`}
-            >
-              <div className="flex items-start justify-between">
-                <div className="flex items-start">
-                  <div className="flex flex-col space-y-2">
-                    <div className="flex items-center">
-                      <input
-                        type="checkbox"
-                        id={`start-${taskId}`}
-                        className="mr-2"
-                        checked={isStarted}
-                        onChange={(e) => toggleTaskStart(taskId, e.target.checked)}
-                      />
-                      <label htmlFor={`start-${taskId}`} className="text-sm">
-                        Bắt đầu nhiệm vụ
-                      </label>
-                    </div>
-                    <div className="flex items-center">
-                      <input
-                        type="checkbox"
-                        id={`complete-${taskId}`}
-                        className="mr-2"
-                        checked={isCompleted}
-                        disabled={!isStarted}
-                        onChange={(e) => toggleTaskCompletion(taskId, e.target.checked)}
-                      />
-                      <label htmlFor={`complete-${taskId}`} className="text-sm">
-                        Hoàn thành nhiệm vụ
-                      </label>
-                    </div>
-                  </div>
-                  <div className="ml-4">
-                    <h3 className={`font-medium text-gray-800 ${isCompleted ? "line-through" : ""}`}>
+        {currentDay !== "Exam" ? (
+          weekData?.tasks_by_day?.[currentDay]?.length > 0 ? (
+            weekData.tasks_by_day[currentDay].map((task) => (
+              <div
+                key={task.id}
+                className={`bg-white rounded-lg shadow p-5 ${
+                  task.is_done ? "opacity-70 bg-green-50" : ""
+                }`}
+              >
+                <div className="flex flex-col md:flex-row items-start justify-between">
+                  <div className="flex-1">
+                    <h3
+                      className={`font-medium text-gray-800 ${task.is_done ? "line-through" : ""}`}
+                    >
                       {task.task}
                     </h3>
                     <div className="flex flex-wrap gap-2 mt-2">
-                      <span className={`px-2 py-1 rounded-full text-xs ${getTypeColor(task.type)}`}>
-                        {task.type}
+                      <span className="px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-800">
+                        Type: {task.type}
                       </span>
-                      <span className={`px-2 py-1 rounded-full text-xs ${getFocusColor(task.focus)}`}>
-                        {task.focus}
+                      <span className="px-2 py-1 rounded-full text-xs bg-green-100 text-green-800">
+                        Focus: {task.focus}
                       </span>
                       <span className="px-2 py-1 rounded-full text-xs bg-gray-100 text-gray-800">
-                        {task.duration}
+                        Duration: {task.duration}
                       </span>
                     </div>
-                    {task.resource !== "None" && (
-                      <div className="mt-3 text-sm">
-                        <span className="text-gray-600">Tài nguyên:</span>
-                        <a
-                          href={task.resource}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-blue-600 ml-1 hover:underline"
-                        >
-                          {getResourceName(task.resource)}
-                        </a>
-                      </div>
-                    )}
-                    {task.theory && (
-                      <div className="mt-3 text-sm bg-blue-50 p-3 rounded">
-                        <div className="font-medium text-blue-800">Lý thuyết:</div>
-                        <div className="text-blue-700 mt-1">{task.theory}</div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-                {isStarted && (
-                  <div className="flex flex-col items-end">
-                    {isCompleted ? (
-                      <div className="text-green-500 flex items-center">
-                        <FaCheckCircle />
-                        <span className="ml-1 text-xs">
-                          Hoàn thành lúc {completedTasks[taskId].time} ({completedTasks[taskId].durationMinutes} phút)
-                        </span>
-                      </div>
-                    ) : (
-                      <>
-                        <div className="text-blue-500 flex items-center">
-                          <FaHourglassStart />
-                          <span className="ml-1 text-xs">
-                            Bắt đầu lúc{" "}
-                            {new Date(startedTasks[taskId].time).toLocaleTimeString([], {
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })}
-                          </span>
-                        </div>
-                        <div className="timer-display text-sm mt-1 font-mono bg-gray-100 px-2 py-1 rounded">
-                          {activeTimers[taskId] ? formatTimer(activeTimers[taskId]) : "00:00:00"}
-                        </div>
-                      </>
-                    )}
-                  </div>
-                )}
-              </div>
-              {task.exercises?.length > 0 && (
-                <div className="mt-4 border-t pt-4">
-                  <h4 className="font-medium text-gray-700 mb-2">Bài tập:</h4>
-                  <div className="space-y-4">
-                    {task.exercises.map((exercise, exIndex) => {
-                      const exerciseId = `${taskId}-${exIndex}`;
-                      const isAnswerShown = !!showAnswers[exerciseId];
-                      return (
-                        <div key={exerciseId} className="bg-gray-50 p-3 rounded-lg">
-                          <div className="font-medium text-gray-800">{exercise.exercise}</div>
-                          <div className="text-sm text-gray-600 mt-1">{exercise.instructions}</div>
-                          <div className="flex items-center mt-2">
-                            <input
-                              type="checkbox"
-                              id={`show-${exerciseId}`}
-                              className="mr-2"
-                              checked={isAnswerShown}
-                              onChange={(e) => toggleShowAnswer(exerciseId, e.target.checked)}
-                            />
-                            <label htmlFor={`show-${exerciseId}`} className="text-sm">
-                              Hiển thị đáp án
-                            </label>
-                          </div>
-                          <div
-                            className={`exercise-answer mt-2 overflow-hidden transition-all duration-300 ${
-                              isAnswerShown ? "max-h-[500px]" : "max-h-0"
-                            }`}
+                    <div className="mt-3 text-sm text-gray-600 grid grid-cols-1 md:grid-cols-2 gap-2">
+                      <p>Task ID: {task.id}</p>
+                      <p>Week: {weekData?.week?.id || "N/A"}</p>
+                      <p>Learning Week ID: {task.learning_week_id}</p>
+                      <p>Day: {task.day}</p>
+                      <p>User ID: {task.user_id}</p>
+                      <p>Status: {task.is_done ? "Completed" : "Incomplete"}</p>
+                      {task.theory && <p>Theory: {task.theory}</p>}
+                      {task.resource && (
+                        <p>
+                          Resource:{" "}
+                          <a
+                            href={task.resource}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-600 hover:underline"
                           >
-                            <div className="code-block bg-gray-100 rounded p-3 font-mono text-sm border-l-3 border-blue-500">
-                              {exercise.answer}
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
+                            {task.resource}
+                          </a>
+                        </p>
+                      )}
+                      {task.expired_at && <p>Expires: {formatDate(task.expired_at)}</p>}
+                      <p>Created: {formatDate(task.created_at)}</p>
+                      <p>Updated: {formatDate(task.updated_at)}</p>
+                    </div>
+                    {!task.is_done && (
+                      <button
+                        onClick={() => handleMarkTaskCompleted(task.id)}
+                        className="mt-3 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg"
+                      >
+                        Mark as Completed
+                      </button>
+                    )}
+                  </div>
+                  <div className="flex flex-col items-end mt-4 md:mt-0">
+                    <div className="flex items-center space-x-2">
+                      <FaCircle className="text-gray-400" />
+                      <span className="text-xs text-gray-500">
+                        Due {formatDate(task.created_at)}
+                      </span>
+                    </div>
+                    {task.is_done && (
+                      <span className="text-green-500 flex items-center mt-2">
+                        <FaCheckCircle />
+                        <span className="ml-1 text-xs">Completed</span>
+                      </span>
+                    )}
                   </div>
                 </div>
-              )}
+                <div className="mt-4 border-t pt-4">
+                  {!task.is_done && (
+                    <button
+                      onClick={() => fetchExercises(task.id)}
+                      className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg mb-4"
+                    >
+                      Load Exercises
+                    </button>
+                  )}
+                  {exercises[task.id]?.length > 0 ? (
+                    exercises[task.id].map((exercise) => (
+                      <ExerciseItem
+                        key={exercise.id}
+                        exercise={exercise}
+                        taskId={task.id}
+                        isTaskDone={task.is_done}
+                        userAnswers={userAnswers}
+                        setUserAnswers={setUserAnswers}
+                        exerciseResults={exerciseResults}
+                        timers={timers}
+                        handleSubmitExercise={handleSubmitExercise}
+                      />
+                    ))
+                  ) : (
+                    <p className="text-sm text-gray-600">
+                      {task.is_done ? "Exercises loaded automatically." : "No exercises loaded."}
+                    </p>
+                  )}
+                </div>
+              </div>
+            ))
+          ) : (
+            <p>No tasks for this day.</p>
+          )
+        ) : (
+          finalExercise ? (
+            <div className="bg-white rounded-lg shadow p-5">
+              <h2 className="text-xl font-semibold text-gray-800 mb-4">Weekly Final Exam</h2>
+              <ExerciseItem
+                exercise={finalExercise}
+                taskId="final_exercise"
+                isTaskDone={finalExercise.is_submitted}
+                userAnswers={userAnswers}
+                setUserAnswers={setUserAnswers}
+                exerciseResults={exerciseResults}
+                timers={timers}
+                handleSubmitExercise={handleSubmitExercise}
+              />
             </div>
-          );
-        })}
+          ) : (
+            <p>Loading final exam...</p>
+          )
+        )}
       </div>
 
-      {/* Completed Tasks Timeline */}
-      <div className="bg-white rounded-xl shadow-md p-6">
-        <h2 className="text-xl font-semibold text-gray-800 mb-4">Dòng thời gian nhiệm vụ đã hoàn thành</h2>
-        <div className="border-l-2 border-gray-200 pl-4 space-y-4">
-          {completedList.length === 0 ? (
-            <p className="text-gray-500 italic">Chưa có nhiệm vụ nào hoàn thành</p>
-          ) : (
-            <>
-              {completedList.map((item, index) => {
-                const plannedMinutes = parseInt(item.plannedDuration.split(" ")[0]) || 0;
-                const efficiency =
-                  item.durationMinutes > 0 && plannedMinutes > 0 ? (plannedMinutes / item.durationMinutes) * 100 : 0;
-                let efficiencyText = "";
-                let efficiencyColor = "gray";
-                if (efficiency > 110) {
-                  efficiencyText = "Rất hiệu quả";
-                  efficiencyColor = "green";
-                } else if (efficiency > 90) {
-                  efficiencyText = "Đúng giờ";
-                  efficiencyColor = "blue";
-                } else if (efficiency > 0) {
-                  efficiencyText = "Mất nhiều thời gian hơn";
-                  efficiencyColor = "yellow";
-                }
-
-                return (
-                  <div key={index} className="relative pb-4">
-                    <div className="absolute w-3 h-3 bg-blue-500 rounded-full mt-1 left-[-1.4rem] border border-white"></div>
-                    <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-100">
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <h3 className="font-medium text-gray-800">{item.task}</h3>
-                          <div className="flex flex-wrap gap-2 mt-2">
-                            <span className={`text-xs px-2 py-1 rounded-full ${getTypeColor(item.type)}`}>
-                              {item.type}
-                            </span>
-                            <span className={`text-xs px-2 py-1 rounded-full ${getFocusColor(item.focus)}`}>
-                              {item.focus}
-                            </span>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <div className="text-sm font-medium text-gray-700">
-                            {new Date(item.endTime).toLocaleDateString([], {
-                              weekday: "long",
-                              month: "short",
-                              day: "numeric",
-                            })}
-                          </div>
-                          <div className="text-xs text-gray-500">{item.time}</div>
-                        </div>
-                      </div>
-                      <div className="flex justify-between items-center mt-3 pt-3 border-t border-gray-100">
-                        <div className="flex items-center space-x-2">
-                          <div className="text-sm">
-                            <span className="text-gray-600">Dự kiến:</span>
-                            <span className="font-medium ml-1">{item.plannedDuration}</span>
-                          </div>
-                          <div className="text-sm">
-                            <span className="text-gray-600">Thực tế:</span>
-                            <span className="font-medium ml-1">{item.durationMinutes} phút</span>
-                          </div>
-                        </div>
-                        {efficiencyText && (
-                          <span
-                            className={`text-xs px-2 py-1 rounded-full bg-${efficiencyColor}-100 text-${efficiencyColor}-800`}
-                          >
-                            {efficiencyText}
-                          </span>
-                        )}
-                      </div>
-                    </div>
+      {/* Section 1: Exercises Tổng Quát của Cả Tuần */}
+      {canShowExamTab() && (
+        <div className="bg-white rounded-xl shadow-md p-6 mb-8">
+          <h2 className="text-xl font-semibold text-gray-800 mb-4">Weekly Exercises Overview</h2>
+          {Object.keys(exercises).length > 0 ? (
+            Object.entries(exercises).map(([taskId, taskExercises]) => (
+              <div key={taskId} className="mb-4">
+                <h3 className="text-lg font-medium text-gray-700">
+                  Task {taskId}:{" "}
+                  {weekData.tasks_by_day[currentDay === "Exam" ? "Sunday" : currentDay].find(
+                    (task) => task.id === parseInt(taskId)
+                  )?.task || "Unknown Task"}
+                </h3>
+                {taskExercises.map((exercise) => (
+                  <div key={exercise.id} className="bg-gray-50 p-3 rounded-lg mt-2">
+                    <p className="text-sm font-medium text-gray-800">{exercise.exercise}</p>
+                    <p className="text-sm text-gray-600">Type: {exercise.type}</p>
+                    <p className="text-sm text-gray-600">
+                      Your Answer: {exercise.user_answer || "Not answered"}
+                    </p>
+                    <p className="text-sm text-gray-600">
+                      Status: {exercise.is_correct ? "Correct" : "Incorrect"}
+                    </p>
+                    <p className="text-sm text-gray-600">Score: {exercise.user_score}</p>
                   </div>
-                );
-              })}
-              <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-                <h3 className="text-lg font-semibold text-gray-800">Tóm tắt</h3>
-                <div className="flex justify-between text-sm text-gray-600 mt-2">
-                  <span>Tổng thời gian dự kiến: {totalPlannedMinutes} phút</span>
-                  <span>Tổng thời gian thực tế: {totalActualMinutes} phút</span>
-                </div>
-                <div className="text-sm text-gray-600 mt-1">
-                  Chênh lệch: {totalActualMinutes - totalPlannedMinutes} phút (
-                  {totalActualMinutes > totalPlannedMinutes ? "Vượt quá" : "Dưới mức"})
-                </div>
+                ))}
               </div>
-            </>
+            ))
+          ) : (
+            <p className="text-sm text-gray-600">No exercises available for this week.</p>
           )}
         </div>
-      </div>
+      )}
+
+      {/* Section 2: Summary Exercises của Tuần */}
+      {weekSummary && (
+        <div className="bg-white rounded-xl shadow-md p-6 mb-8">
+          <h2 className="text-xl font-semibold text-gray-800 mb-4">Weekly Exercises Summary</h2>
+          <div className="text-sm text-gray-600">
+            <p>Total Exercises: {weekSummary.summary.total_exercises}</p>
+            <p>Correct Exercises: {weekSummary.summary.correct_exercises}</p>
+            <p>Total Score: {weekSummary.summary.score}</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
 
-export default LearningPlanPage;
+export default LearningPlan;

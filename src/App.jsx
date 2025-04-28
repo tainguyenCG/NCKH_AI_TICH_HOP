@@ -6,6 +6,7 @@ import { useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import Footer from "./components/Footer";
 import AISupportButton from "./components/AISupportButton";
+import { ToastContainer} from "react-toastify";
 
 const ScrollToTop = () => {
   const { pathname } = useLocation();
@@ -28,8 +29,17 @@ const App = () => {
         <ScrollToTop />
         <Navbar />
         <AppRouters />
-        <AISupportButton /> 
-        <Footer/>
+        <ToastContainer
+          position="top-right"
+          autoClose={5000}
+          hideProgressBar={false}
+          closeOnClick
+          pauseOnHover
+          draggable
+          theme="colored"
+        />
+        <AISupportButton />
+        <Footer />
       </div>
     </Router>
   );
